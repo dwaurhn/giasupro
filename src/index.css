@@ -1,0 +1,10 @@
+@layer base {
+  html {
+    font-family: 'Inter', sans-serif;
+  }
+}
+
+/* Hoặc nếu không dùng Tailwind layer thì dùng cách này */
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif !important;
+}
