@@ -6,95 +6,63 @@ export default async function handler(req, res) {
   }
 
   try {
-    // =========================
-    // 1. LẤY & CHUẨN HÓA DỮ LIỆU
-    // =========================
+    // 1. CHUẨN HÓA DỮ LIỆU ĐẦU VÀO
     const amount = Math.round(Number(req.body.amount || 0));
-    const orderId =
-      String(req.body.orderId || `GSPRO_${Date.now()}`).trim();
-
-    // ⚠️ DÙNG TEXT ĐƠN GIẢN ĐỂ TRÁNH LỖI ENCODE
-    const orderInfo = "thanh toan test";
+    const orderId = String(req.body.orderId || `GSPRO_${Date.now()}`).trim();
+    
+    // Sử dụng chuỗi viết liền, không dấu, không gạch ngang để an toàn tuyệt đối
+    const orderInfo = "ThanhToanGiaSuPro"; 
+    const requestId = orderId;
+    const extraData = ""; // Để trống theo yêu cầu của bạn
 
     if (!amount || amount <= 0) {
-      return res.status(400).json({ error: "Amount không hợp lệ" });
+      return res.status(400).json({ error: "Số tiền không hợp lệ" });
     }
 
-    // =========================
-    // 2. KEY SANDBOX MOMO
-    // =========================
+    // 2. CẤU HÌNH THÔNG SỐ MOMO SANDBOX (V2)
     const partnerCode = "MOMO";
     const accessKey = "F8BBA842ECF85";
-    const secretKey = "MomoTestSecretKey";
+    const secretKey = "K951B6PE1waDMi640xX08PD3vg6EkVlz"; // Secret Key chuẩn cho account MOMO test
+    const endpoint = "https://test-payment.momo.vn/v2/gateway/api/create";
 
-    const endpoint =
-      "https://test-payment.momo.vn/v2/gateway/api/create";
-
-    const redirectUrl =
-      "https://giasupro.vercel.app/dashboard";
-    const ipnUrl =
-      "https://giasupro.vercel.app/api/momo-ipn";
-
+    const redirectUrl = "https://giasupro.vercel.app/dashboard";
+    const ipnUrl = "https://giasupro.vercel.app/api/momo-ipn";
     const requestType = "captureWallet";
-    const extraData = "";
-    const requestId = orderId;
 
-    // =========================
-    // 3. TẠO RAW SIGNATURE (CHUẨN 100%)
-    // =========================
-    const rawSignature =
-      "accessKey=" +
-      accessKey +
-      "&amount=" +
-      amount +
-      "&extraData=" +
-      extraData +
-      "&ipnUrl=" +
-      ipnUrl +
-      "&orderId=" +
-      orderId +
-      "&orderInfo=" +
-      orderInfo +
-      "&partnerCode=" +
-      partnerCode +
-      "&redirectUrl=" +
-      redirectUrl +
-      "&requestId=" +
-      requestId +
-      "&requestType=" +
-      requestType;
+    // 3. TẠO OBJECT DỮ LIỆU GỐC (Dùng chung cho cả Hash và Body)
+    const rawData = {
+      accessKey,
+      amount,
+      extraData,
+      ipnUrl,
+      orderId,
+      orderInfo,
+      partnerCode,
+      redirectUrl,
+      requestId,
+      requestType,
+    };
 
-    // DEBUG (rất quan trọng nếu còn lỗi)
-    console.log("RAW SIGNATURE:", rawSignature);
+    // 4. TẠO CHUỖI RAW SIGNATURE (Sắp xếp theo Alphabetical tự động)
+    const rawSignature = Object.keys(rawData)
+      .sort()
+      .map((key) => `${key}=${rawData[key]}`)
+      .join("&");
 
+    // 5. MÃ HÓA HMAC-SHA256
     const signature = crypto
       .createHmac("sha256", secretKey)
       .update(rawSignature)
       .digest("hex");
 
-    console.log("SIGNATURE:", signature);
-
-    // =========================
-    // 4. REQUEST BODY
-    // =========================
+    // 6. TẠO REQUEST BODY ĐỂ GỬI SANG MOMO
     const requestBody = {
-      partnerCode,
-      accessKey,
-      requestId,
-      amount,
-      orderId,
-      orderInfo,
-      redirectUrl,
-      ipnUrl,
-      extraData,
-      requestType,
+      ...rawData,
       signature,
       lang: "vi",
     };
 
-    // =========================
-    // 5. GỌI MOMO API
-    // =========================
+    // 7. GỌI API MOMO
     const response = await fetch(endpoint, {
       method: "POST",
       headers: {
@@ -105,12 +73,14 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    // =========================
-    // 6. TRẢ KẾT QUẢ
-    // =========================
+    // Log kết quả từ MoMo để bạn debug trên Vercel dễ dàng hơn
+    console.log("MoMo Response:", data);
+
+    // 8. TRẢ KẾT QUẢ VỀ FRONTEND
     return res.status(200).json(data);
+
   } catch (error) {
-    console.error("ERROR:", error);
-    return res.status(500).json({ error: error.message });
+    console.error("LỖI HỆ THỐNG:", error);
+    return res.status(500).json({ error: "Lỗi kết nối đến MoMo" });
   }
 }
