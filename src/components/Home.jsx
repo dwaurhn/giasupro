@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { getDanhSachGiaSu } from '../services/authService'; 
 import {
   Search, GraduationCap, Star, Quote, ChevronRight, BookOpen, Globe, 
-  Cpu, BookMarked, Users, Award, Clock, MousePointerClick, CalendarCheck,
+  BookMarked, Users, Award, Clock, MousePointerClick, CalendarCheck,
   CheckCircle2, TrendingUp
 } from 'lucide-react';
 
@@ -24,25 +24,32 @@ export default function Home() {
     fetchTopTutors();
   }, []);
 
+  // 2. CẬP NHẬT: 3 Môn học cốt lõi THCS
   const topCourses = [
-    { id: 1, name: 'Toán Học', icon: BookOpen, desc: 'Lấy lại căn bản, bứt phá điểm 9+' },
-    { id: 2, name: 'Tiếng Anh', icon: Globe, desc: 'Tự tin giao tiếp, ôn thi IELTS/TOEIC' },
-    { id: 3, name: 'Lập Trình', icon: Cpu, desc: 'ReactJS, Node.js, ESP32 & Firebase' },
-    { id: 4, name: 'Triết Học', icon: BookMarked, desc: 'Vượt qua ác mộng đại học dễ dàng' },
+    { id: 1, name: 'Toán Học', icon: BookOpen, desc: 'Đại số & Hình học cốt lõi, luyện thi lớp 10' },
+    { id: 2, name: 'Ngữ Văn', icon: BookMarked, desc: 'Rèn luyện kỹ năng viết, cảm thụ văn học' },
+    { id: 3, name: 'Tiếng Anh', icon: Globe, desc: 'Ngữ pháp, từ vựng & giao tiếp tự tin' },
   ];
 
+  // 3. CẬP NHẬT: Dữ liệu gia sư mẫu định hướng THCS
   const mockTutors = [
-    { id: 'mock1', name: 'Nguyễn Văn A', subject: 'Toán Cao Cấp', rating: 5, exp: '5 năm kinh nghiệm' },
-    { id: 'mock2', name: 'Trần Thị B', subject: 'IELTS 8.0', rating: 5, exp: 'Cựu du học sinh Anh' },
-    { id: 'mock3', name: 'Dương IT', subject: 'Lập trình Nhúng', rating: 5, exp: 'Chuyên gia IoT & React' },
-    { id: 'mock4', name: 'Lê Minh C', subject: 'Vật Lý 12', rating: 4.9, exp: 'Giáo viên trường Chuyên' },
+    { id: 'mock1', name: 'Nguyễn Văn A', subject: 'Toán Học', grade: 'Khối 8-9', rating: 5, exp: '5 năm kinh nghiệm' },
+    { id: 'mock2', name: 'Trần Thị B', subject: 'Tiếng Anh', grade: 'Khối 6-7', rating: 5, exp: 'Cựu du học sinh Anh' },
+    { id: 'mock3', name: 'Dương IT', subject: 'Ngữ Văn', grade: 'Khối 8-9', rating: 5, exp: 'Giáo viên trường Chuyên' },
+    { id: 'mock4', name: 'Lê Minh C', subject: 'Toán Học', grade: 'Khối 6-7', rating: 4.9, exp: 'Chuyên lấy lại căn bản' },
+  ];
+
+  // 4. CẬP NHẬT: Review mẫu THCS
+  const topStudents = [
+    { id: 1, name: 'Lê Hoàng C.', review: '"Nhờ gia sư hệ thống lại kiến thức, mình đã được 9 điểm Toán giữa kỳ!"' },
+    { id: 2, name: 'Phạm Thị D.', review: '"Cách cô phân tích tác phẩm rất sâu sắc, làm bài văn mượt hơn hẳn."' },
+    { id: 3, name: 'Trần Văn E.', review: '"Cô giáo dạy grammar rất kỹ, điểm Anh văn trên lớp cải thiện rõ rệt."' },
   ];
 
   const courseColors = [
     { bg: 'bg-blue-50', iconBg: 'bg-blue-600', hoverBorder: 'hover:border-blue-400' },
     { bg: 'bg-emerald-50', iconBg: 'bg-emerald-600', hoverBorder: 'hover:border-emerald-400' },
     { bg: 'bg-violet-50', iconBg: 'bg-violet-600', hoverBorder: 'hover:border-violet-400' },
-    { bg: 'bg-amber-50', iconBg: 'bg-amber-600', hoverBorder: 'hover:border-amber-400' },
   ];
 
   const getAvatarUrl = (tutor) => {
@@ -52,7 +59,6 @@ export default function Home() {
   };
 
   const displayTutors = realTutors.length > 0 ? realTutors : mockTutors;
-
   const paddedTutors = [...displayTutors];
   while (paddedTutors.length < 4 && paddedTutors.length > 0) {
     paddedTutors.push(mockTutors[paddedTutors.length % mockTutors.length]);
@@ -62,7 +68,7 @@ export default function Home() {
     <div className="min-h-screen bg-white font-sans overflow-hidden">
 
       {/* ============================================= */}
-      {/* 1. HERO BANNER                                */}
+      {/* 1. HERO BANNER (ĐÃ SỬA TEXT THCS)             */}
       {/* ============================================= */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-500 text-white w-full">
         <div className="pointer-events-none absolute -top-24 -left-24 h-96 w-96 rounded-full bg-white/10 blur-3xl" />
@@ -84,19 +90,19 @@ export default function Home() {
         <div className="relative z-10 mx-auto max-w-4xl px-5 py-24 text-center md:py-36">
           <span className="mb-8 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-5 py-2 text-sm font-bold backdrop-blur-sm shadow-sm">
             <GraduationCap className="h-4 w-4" />
-            Nền tảng Kết nối Gia sư #1 Việt Nam
+            Nền tảng Gia sư THCS #1 Việt Nam
           </span>
 
           <h1 className="mb-8 text-5xl font-black leading-tight tracking-tight md:text-6xl lg:text-7xl">
-            Tìm Gia Sư Hoàn Hảo{' '}
+            Lấy Lại Căn Bản,{' '}
             <br className="hidden md:block" />
             <span className="bg-gradient-to-r from-cyan-200 to-white bg-clip-text text-transparent">
-              Cho Tương Lai Của Bạn
+              Bứt Phá Điểm Số Cấp 2
             </span>
           </h1>
 
           <p className="mx-auto mb-12 max-w-2xl text-lg leading-relaxed text-blue-100 md:text-xl">
-            Hàng ngàn gia sư ưu tú đã sẵn sàng đồng hành cùng bạn trên con đường chinh phục tri thức. Trải nghiệm học 1 kèm 1 chất lượng cao ngay hôm nay!
+            Hàng ngàn gia sư ưu tú đã sẵn sàng đồng hành cùng bạn chinh phục 3 môn cốt lõi: Toán, Ngữ Văn, Tiếng Anh. Chuẩn bị hành trang vững chắc thi vào lớp 10!
           </p>
 
           <div className="flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -131,7 +137,7 @@ export default function Home() {
       </section>
 
       {/* =========================================== */}
-      {/* 2. QUY TRÌNH HOẠT ĐỘNG (Nền Trắng)           */}
+      {/* 2. QUY TRÌNH HOẠT ĐỘNG (GIỮ NGUYÊN)          */}
       {/* =========================================== */}
       <section className="w-full bg-white py-20 md:py-28">
         <div className="mx-auto max-w-6xl px-5">
@@ -148,7 +154,7 @@ export default function Home() {
                 <Search className="h-10 w-10" />
               </div>
               <h3 className="text-xl font-black text-gray-900 mb-3">1. Tìm kiếm Gia sư</h3>
-              <p className="text-gray-500 px-4 leading-relaxed">Lựa chọn gia sư phù hợp với môn học và nhu cầu của bạn từ danh sách hàng ngàn hồ sơ chất lượng.</p>
+              <p className="text-gray-500 px-4 leading-relaxed">Lựa chọn gia sư phù hợp với môn học và khối lớp từ danh sách hàng ngàn hồ sơ chất lượng.</p>
             </div>
 
             <div className="relative z-10 flex flex-col items-center text-center">
@@ -171,16 +177,16 @@ export default function Home() {
       </section>
 
       {/* =========================================== */}
-      {/* 3. CÁC MÔN HỌC / KHÓA HỌC NỔI BẬT (Nền Xám) */}
+      {/* 3. CÁC MÔN HỌC (3 MÔN CHÍNH)                */}
       {/* =========================================== */}
       <section className="w-full bg-slate-50 py-20 md:py-28 border-y border-gray-100">
         <div className="mx-auto max-w-6xl px-5">
           <div className="mb-16 text-center">
-            <span className="mb-3 inline-block rounded-full bg-blue-100 px-4 py-1.5 text-sm font-bold text-blue-700 uppercase tracking-wider">Khám phá</span>
-            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">Các Môn Học Phổ Biến</h2>
+            <span className="mb-3 inline-block rounded-full bg-blue-100 px-4 py-1.5 text-sm font-bold text-blue-700 uppercase tracking-wider">Trọng tâm THCS</span>
+            <h2 className="text-3xl font-extrabold tracking-tight text-gray-900 md:text-4xl">3 Môn Cốt Lõi Khối 6 - 9</h2>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-3 lg:grid-cols-3">
             {topCourses.map((course, idx) => {
               const color = courseColors[idx % courseColors.length];
               const IconComp = course.icon;
@@ -203,7 +209,7 @@ export default function Home() {
       </section>
 
       {/* =========================================== */}
-      {/* 4. GIA SƯ TIÊU BIỂU (Nền Trắng)             */}
+      {/* 4. GIA SƯ TIÊU BIỂU (HIỂN THỊ KHỐI LỚP)     */}
       {/* =========================================== */}
       <section className="w-full bg-white py-20 md:py-28">
         <div className="mx-auto max-w-7xl px-5">
@@ -233,11 +239,11 @@ export default function Home() {
                     </div>
 
                     <span className="mb-6 inline-block rounded-full bg-blue-50 border border-blue-100 px-4 py-1.5 text-sm font-bold text-blue-700">
-                      {tutor.chi_tiet_gia_su?.mon_hoc || tutor.subject || 'Đa môn'}
+                      {tutor.chi_tiet_gia_su?.mon_hoc || tutor.subject || 'Đa môn'} • {tutor.chi_tiet_gia_su?.khoi_day || tutor.grade || 'Cấp 2'}
                     </span>
 
                     <button
-                      onClick={() => navigate(tutor.id.startsWith('mock') ? '/tutors' : `/tutor/${tutor.id}`)}
+                      onClick={() => navigate(tutor.id?.startsWith('mock') ? '/tutors' : `/tutor/${tutor.id}`)}
                       className="mt-2 flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-900 px-5 py-3.5 text-sm font-bold text-white shadow-md transition-all hover:bg-blue-600 hover:shadow-lg active:scale-95"
                     >
                       Xem Hồ Sơ <ChevronRight className="h-4 w-4" />
@@ -254,17 +260,16 @@ export default function Home() {
       </section>
 
       {/* =========================================== */}
-      {/* 5. ĐÁNH GIÁ THẬT TỪ CỘNG ĐỒNG                 */}
+      {/* 5. ĐÁNH GIÁ THẬT (FULL UI)                  */}
       {/* =========================================== */}
       <RealReviewsSection navigate={navigate} />
 
       {/* =========================================== */}
-      {/* 6. CALL TO ACTION BOTTOM (Nền Trắng)        */}
+      {/* 6. CALL TO ACTION BOTTOM (GIỮ NGUYÊN)       */}
       {/* =========================================== */}
       <section className="w-full bg-white pb-24 pt-10">
         <div className="mx-auto max-w-5xl px-5">
           <div className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 p-10 text-center text-white shadow-2xl md:p-20">
-            {/* Decors */}
             <div className="absolute -left-20 top-0 h-64 w-64 rounded-full bg-blue-500/20 blur-3xl"></div>
             <div className="absolute -right-20 bottom-0 h-64 w-64 rounded-full bg-cyan-500/20 blur-3xl"></div>
             
@@ -289,7 +294,7 @@ export default function Home() {
 }
 
 // ===========================================
-// COMPONENT CON: ĐÁNH GIÁ THẬT
+// COMPONENT CON: ĐÁNH GIÁ THẬT (GIỮ FULL UI CŨ)
 // ===========================================
 function RealReviewsSection({ navigate }) {
   const [reviews, setReviews] = useState([]);
@@ -305,9 +310,9 @@ function RealReviewsSection({ navigate }) {
   }, []);
 
   const mockReviews = [
-    { id: 1, hoc_vien: { ho_ten: 'Lê Hoàng C.' }, gia_su: { ho_ten: 'Nguyễn Văn A', chi_tiet_gia_su: { mon_hoc: 'Toán Cao Cấp' } }, so_sao: 5, nhan_xet: 'Gia sư dạy rất dễ hiểu, nhiệt tình. Mình đã pass môn Toán dễ dàng!' },
-    { id: 2, hoc_vien: { ho_ten: 'Phạm Thị D.' }, gia_su: { ho_ten: 'Trần Thị B', chi_tiet_gia_su: { mon_hoc: 'IELTS' } }, so_sao: 5, nhan_xet: 'Đạt aim IELTS 7.5 chỉ sau 3 tháng ôn luyện. Cảm ơn gia sư rất nhiều!' },
-    { id: 3, hoc_vien: { ho_ten: 'Trần Văn E.' }, gia_su: { ho_ten: 'Dương IT', chi_tiet_gia_su: { mon_hoc: 'Lập Trình' } }, so_sao: 5, nhan_xet: 'Đồ án ESP32 đạt điểm A+ nhờ các buổi học thực tế và tận tâm của gia sư.' },
+    { id: 1, hoc_vien: { ho_ten: 'Lê Hoàng C.' }, gia_su: { ho_ten: 'Nguyễn Văn A', chi_tiet_gia_su: { mon_hoc: 'Toán Học' } }, so_sao: 5, nhan_xet: 'Gia sư dạy rất dễ hiểu, nhiệt tình. Mình đã được 9 điểm Toán giữa kỳ!' },
+    { id: 2, hoc_vien: { ho_ten: 'Phạm Thị D.' }, gia_su: { ho_ten: 'Trần Thị B', chi_tiet_gia_su: { mon_hoc: 'Tiếng Anh' } }, so_sao: 5, nhan_xet: 'Cô giáo dạy grammar rất kỹ, điểm Anh văn trên lớp cải thiện rõ rệt.' },
+    { id: 3, hoc_vien: { ho_ten: 'Trần Văn E.' }, gia_su: { ho_ten: 'Dương IT', chi_tiet_gia_su: { mon_hoc: 'Ngữ Văn' } }, so_sao: 5, nhan_xet: 'Cách cô phân tích tác phẩm rất sâu sắc, làm bài văn mượt hơn hẳn.' },
   ];
 
   const displayReviews = reviews.length > 0 ? reviews : mockReviews;
@@ -340,7 +345,6 @@ function RealReviewsSection({ navigate }) {
                   </div>
                   <p className="mb-6 text-base font-medium italic leading-relaxed text-gray-600 flex-1">"{rv.nhan_xet || 'Buổi học rất tuyệt vời!'}"</p>
                   
-                  {/* Thông tin học viên */}
                   <div className="flex items-center gap-3 border-t border-slate-100 pt-5">
                     <img src={getAvatarUrl(rv.hoc_vien)} className="h-12 w-12 rounded-full border border-slate-200 object-cover" alt="" />
                     <div>
@@ -349,7 +353,6 @@ function RealReviewsSection({ navigate }) {
                     </div>
                   </div>
                   
-                  {/* Tag môn học */}
                   <div className="mt-3">
                     <span className="rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600">
                       {rv.gia_su?.chi_tiet_gia_su?.[0]?.mon_hoc || rv.gia_su?.chi_tiet_gia_su?.mon_hoc || 'Môn học'}
