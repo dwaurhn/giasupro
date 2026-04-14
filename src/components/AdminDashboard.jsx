@@ -227,9 +227,16 @@ export default function AdminDashboard({ userProfile }) {
       cho_xac_nhan: { bg: 'bg-amber-50', text: 'text-amber-600', label: 'Chờ xác nhận' },
       da_thanh_toan: { bg: 'bg-emerald-50', text: 'text-emerald-600', label: 'Đã thanh toán' },
       yeu_cau_huy: { bg: 'bg-orange-50', text: 'text-orange-600', label: 'Yêu cầu hủy' },
-      da_huy: { bg: 'bg-rose-50', text: 'text-rose-600', label: 'Đã hủy' }
+      da_huy: { bg: 'bg-rose-50', text: 'text-rose-600', label: 'Đã hủy' },
+      // THÊM CÁC TRẠNG THÁI BỊ THIẾU Ở ĐÂY 👇
+      hoan_thanh: { bg: 'bg-blue-50', text: 'text-blue-700', label: 'Hoàn thành' },
+      da_hoan_tien: { bg: 'bg-slate-100', text: 'text-slate-600', label: 'Đã hoàn tiền' },
+      dang_tranh_chap: { bg: 'bg-red-50', text: 'text-red-600', label: 'Đang tranh chấp' }
     };
-    const { bg, text, label } = config[status] || config.cho_xac_nhan;
+    
+    // Nếu có trạng thái lạ chưa khai báo, hiển thị luôn tên trạng thái đó ra để dễ bắt lỗi
+    const { bg, text, label } = config[status] || { bg: 'bg-gray-100', text: 'text-gray-600', label: status };
+    
     return <span className={`inline-flex items-center rounded-full px-2.5 py-1 text-xs font-bold ${bg} ${text}`}>{label}</span>;
   };
 
