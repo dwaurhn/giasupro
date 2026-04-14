@@ -130,12 +130,11 @@ export default function TutorList({ session, userProfile }) {
     setIsModalOpen(false); setShowPaymentModal(true);
   };
 
-  // CẬP NHẬT: Bước chuyển sang quét QR
- const handleProceedToQR = async () => {
+  // CẬP NHẬT: Bước chuyển sang quét QR (Áp dụng Cách 1 cho MoMo)
+  const handleProceedToQR = async () => {
     if (!selectedPayment) return alert("Vui lòng chọn phương thức thanh toán!");
     
     if (selectedPayment === 'MoMo') {
-      // 1. Nếu chọn MoMo -> Chuyển sang cổng thanh toán MoMo thật
       setPaymentStep('processing');
       const orderId = `GSPRO_${Date.now()}`; 
       
@@ -153,8 +152,10 @@ export default function TutorList({ session, userProfile }) {
         const data = await res.json();
         
         if (data && data.payUrl) {
-          // CHUYỂN HƯỚNG SANG TRANG MOMO MÀU HỒNG
-          window.location.href = data.payUrl; 
+          // --- THAY ĐỔI Ở ĐÂY: Mở tab mới thay vì chuyển hướng trang hiện tại ---
+          window.open(data.payUrl, '_blank'); 
+          // --- Chuyển Modal sang bước qr_scan để hiện nút xác nhận
+          setPaymentStep('qr_scan');
         } else {
           alert('Lỗi khởi tạo MoMo: ' + (data.message || 'Không có payUrl'));
           setPaymentStep('select');
@@ -169,7 +170,7 @@ export default function TutorList({ session, userProfile }) {
     }
   };
 
-  // CẬP NHẬT: Bước xác nhận đã chuyển khoản xong
+  // Bước xác nhận đã chuyển khoản/thanh toán xong (Dùng chung cho cả MoMo và Ngân hàng)
   const handleConfirmTransfer = async () => {
     setPaymentStep('processing');
     await new Promise(resolve => setTimeout(resolve, 2000)); // Giả lập độ trễ
@@ -177,12 +178,10 @@ export default function TutorList({ session, userProfile }) {
     const { error } = await guiYeuCauDatLich(pendingBookingData);
     if (error) { alert("Lỗi đặt lịch: " + error.message); setShowPaymentModal(false); return; }
     
-    // Đã bỏ hàm `congTienChoGiaSu` ở đây vì tiền chưa vào. Admin duyệt mới cộng tiền.
-
     try {
       await supabase.from('thong_bao').insert([{ 
         id_nguoi_dung: selectedTutor.id, 
-        noi_dung: `💰 Học viên ${userProfile?.ho_ten || 'Một học viên'} đã báo cáo chuyển khoản thành công. Vui lòng kiểm tra và xác nhận lịch dạy!`, 
+        noi_dung: `💰 Học viên ${userProfile?.ho_ten || 'Một học viên'} đã báo cáo thanh toán thành công. Vui lòng kiểm tra và xác nhận lịch dạy!`, 
         link_den: '/dashboard' 
       }]);
     } catch (err) { console.error(err); }
@@ -256,12 +255,11 @@ export default function TutorList({ session, userProfile }) {
     </div>
   );
 
-  // Tạo nội dung chuyển khoản tự động
   const noiDungChuyenKhoan = `GSPRO ${userProfile?.ho_ten?.replace(/\s+/g, '').toUpperCase() || 'HOCVIEN'} LICH HOC`;
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* HEADER */}
+      {/* HEADER GIỮ NGUYÊN */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-500 pb-28 pt-14">
         <div className="relative z-10 mx-auto max-w-4xl px-5 text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
@@ -270,7 +268,6 @@ export default function TutorList({ session, userProfile }) {
           <h1 className="mb-3 text-3xl font-extrabold tracking-tight text-white md:text-5xl">Tìm Gia Sư Cấp 2 Phù Hợp</h1>
           <p className="mb-8 text-blue-100 md:text-lg">Đội ngũ chuyên giảng dạy Toán, Ngữ Văn, Tiếng Anh khối 6-9</p>
           
-          {/* THANH TÌM KIẾM & BỘ LỌC */}
           <div className="relative mx-auto flex flex-col gap-3 sm:flex-row max-w-2xl">
             <div className="relative flex-1">
               <Search className="pointer-events-none absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
@@ -332,7 +329,7 @@ export default function TutorList({ session, userProfile }) {
         </div>
       </section>
 
-      {/* DANH SÁCH GIA SƯ */}
+      {/* DANH SÁCH GIA SƯ GIỮ NGUYÊN */}
       <div className="mx-auto -mt-10 max-w-6xl px-5 pb-20 relative z-20">
         {hasActiveFilter && (
           <div className="mb-6 flex flex-wrap justify-center gap-2">
@@ -397,7 +394,7 @@ export default function TutorList({ session, userProfile }) {
         )}
       </div>
 
-      {/* MODAL ĐẶT LỊCH */}
+      {/* MODAL ĐẶT LỊCH GIỮ NGUYÊN */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md animate-[fadeIn_0.25s_ease-out] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -470,7 +467,7 @@ export default function TutorList({ session, userProfile }) {
       )}
 
       {/* ========================================================= */}
-      {/* MODAL THANH TOÁN QUÉT MÃ QR (ĐÃ NÂNG CẤP)                   */}
+      {/* MODAL THANH TOÁN (CẬP NHẬT CÁCH 1 CHO MOMO)                 */}
       {/* ========================================================= */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
@@ -506,59 +503,81 @@ export default function TutorList({ session, userProfile }) {
                     ))}
                   </div>
                   <button onClick={handleProceedToQR} disabled={!selectedPayment} className={`w-full rounded-xl py-4 font-bold text-white transition-all active:scale-95 flex items-center justify-center gap-2 ${selectedPayment ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 shadow-lg' : 'bg-slate-300 cursor-not-allowed'}`}>
-                    <QrCode className="h-5 w-5" /> Hiện mã QR thanh toán
+                    <QrCode className="h-5 w-5" /> Hiện mã thanh toán
                   </button>
                 </div>
               </>
             )}
 
-            {/* BƯỚC 2: HIỆN MÃ QR VÀ NỘI DUNG CHUYỂN KHOẢN (CẬP NHẬT MỚI) */}
+            {/* BƯỚC 2: HIỆN MÃ QR HOẶC CHỜ XÁC NHẬN MOMO (ĐÃ CẬP NHẬT) */}
             {paymentStep === 'qr_scan' && (
               <div className="p-6 bg-slate-50">
                 <div className="text-center mb-6">
-                  <h3 className="text-xl font-black text-slate-900">Quét mã để thanh toán</h3>
-                  <p className="text-sm text-slate-500 mt-1">Mở ứng dụng {selectedPayment === 'MoMo' ? 'Ví MoMo' : 'Ngân hàng'} và quét mã</p>
+                  <h3 className="text-xl font-black text-slate-900">
+                    {selectedPayment === 'MoMo' ? 'Đang thanh toán qua MoMo' : 'Quét mã để thanh toán'}
+                  </h3>
+                  <p className="text-sm text-slate-500 mt-1">
+                    {selectedPayment === 'MoMo' ? 'Vui lòng hoàn tất thanh toán ở tab MoMo vừa mở' : 'Mở ứng dụng Ngân hàng và quét mã'}
+                  </p>
                 </div>
 
-                {/* Khung chứa mã QR */}
-                <div className="mx-auto bg-white p-3 border-2 border-slate-200 rounded-2xl w-48 h-48 mb-6 shadow-sm relative">
-                   <img 
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MAT_KHAU_CHUYEN_KHOAN_${totalPrice}`} 
-                      alt="QR Code" 
-                      className="w-full h-full object-contain" 
-                   />
-                </div>
-
-                {/* Thông tin chuyển khoản */}
-                <div className="bg-white p-5 rounded-2xl text-sm mb-6 space-y-3 border border-slate-200 shadow-sm">
-                   <div className="flex justify-between items-center"><span className="text-slate-500">Chủ tài khoản:</span><span className="font-bold text-slate-800 uppercase">Gia Su Pro Admin</span></div>
-                   <div className="flex justify-between items-center"><span className="text-slate-500">Ngân hàng:</span><span className="font-bold text-slate-800">MBBank / MoMo</span></div>
-                   <div className="flex justify-between items-center"><span className="text-slate-500">Số tài khoản:</span><span className="font-black tracking-wider text-slate-800">0123 456 789</span></div>
-                   <div className="flex justify-between items-center pt-2 border-t border-slate-100">
-                     <span className="text-slate-500">Số tiền:</span>
-                     <span className="font-black text-lg text-rose-600">{totalPrice.toLocaleString()} VNĐ</span>
-                   </div>
-                   <div className="pt-2 border-t border-slate-100">
-                     <span className="text-slate-500 block mb-1">Nội dung chuyển khoản (Bắt buộc):</span>
-                     <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg p-2.5">
-                       <span className="font-black text-blue-700 tracking-wider">{noiDungChuyenKhoan}</span>
-                       <Copy className="h-4 w-4 text-blue-400 cursor-pointer hover:text-blue-600" onClick={() => alert('Đã copy nội dung!')} />
-                     </div>
-                   </div>
-                </div>
+                {/* KIỂM TRA: NẾU LÀ MOMO THÌ HIỆN ICON CHỜ, NẾU LÀ NGÂN HÀNG THÌ HIỆN MÃ QR */}
+                {selectedPayment === 'MoMo' ? (
+                  <div className="flex flex-col items-center justify-center py-6 mb-6">
+                    <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-pink-100 text-4xl animate-pulse shadow-inner border border-pink-200">
+                      💜
+                    </div>
+                    <p className="text-sm text-center text-slate-600 font-medium px-4">
+                      Hệ thống đang chờ bạn hoàn tất giao dịch tại tab mới.
+                    </p>
+                  </div>
+                ) : (
+                  <>
+                    {/* Khung chứa mã QR Ngân Hàng (Giữ nguyên cũ) */}
+                    <div className="mx-auto bg-white p-3 border-2 border-slate-200 rounded-2xl w-48 h-48 mb-6 shadow-sm relative">
+                       <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MAT_KHAU_CHUYEN_KHOAN_${totalPrice}`} 
+                          alt="QR Code" 
+                          className="w-full h-full object-contain" 
+                       />
+                    </div>
+    
+                    {/* Thông tin chuyển khoản Ngân hàng (Giữ nguyên cũ) */}
+                    <div className="bg-white p-5 rounded-2xl text-sm mb-6 space-y-3 border border-slate-200 shadow-sm">
+                       <div className="flex justify-between items-center"><span className="text-slate-500">Chủ tài khoản:</span><span className="font-bold text-slate-800 uppercase">Gia Su Pro Admin</span></div>
+                       <div className="flex justify-between items-center"><span className="text-slate-500">Ngân hàng:</span><span className="font-bold text-slate-800">MBBank</span></div>
+                       <div className="flex justify-between items-center"><span className="text-slate-500">Số tài khoản:</span><span className="font-black tracking-wider text-slate-800">0123 456 789</span></div>
+                       <div className="flex justify-between items-center pt-2 border-t border-slate-100">
+                         <span className="text-slate-500">Số tiền:</span>
+                         <span className="font-black text-lg text-rose-600">{totalPrice.toLocaleString()} VNĐ</span>
+                       </div>
+                       <div className="pt-2 border-t border-slate-100">
+                         <span className="text-slate-500 block mb-1">Nội dung chuyển khoản (Bắt buộc):</span>
+                         <div className="flex items-center justify-between bg-blue-50 border border-blue-100 rounded-lg p-2.5">
+                           <span className="font-black text-blue-700 tracking-wider">{noiDungChuyenKhoan}</span>
+                           <Copy className="h-4 w-4 text-blue-400 cursor-pointer hover:text-blue-600" onClick={() => alert('Đã copy nội dung!')} />
+                         </div>
+                       </div>
+                    </div>
+                  </>
+                )}
 
                 <p className="text-xs text-center text-rose-500 font-medium mb-6 px-4">
-                  *Vui lòng bấm nút bên dưới SAU KHI bạn đã chuyển khoản thành công.
+                  *Vui lòng bấm nút bên dưới SAU KHI bạn đã {selectedPayment === 'MoMo' ? 'thanh toán' : 'chuyển khoản'} thành công.
                 </p>
 
                 <div className="flex gap-3">
                   <button onClick={() => setPaymentStep('select')} className="flex-1 py-3.5 font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-all">Quay lại</button>
-                  <button onClick={handleConfirmTransfer} className="flex-[2] py-3.5 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 transition-all active:scale-95">Tôi đã chuyển xong</button>
+                  
+                  {/* NÚT XÁC NHẬN - DÙNG CHUNG CHO CẢ MOMO VÀ NGÂN HÀNG */}
+                  <button onClick={handleConfirmTransfer} className="flex-[2] py-3.5 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 transition-all active:scale-95">
+                    {selectedPayment === 'MoMo' ? 'Tôi đã thanh toán xong' : 'Tôi đã chuyển xong'}
+                  </button>
                 </div>
               </div>
             )}
 
-            {/* BƯỚC 3: ĐANG XỬ LÝ */}
+            {/* BƯỚC 3: ĐANG XỬ LÝ (GIỮ NGUYÊN) */}
             {paymentStep === 'processing' && (
               <div className="p-12 text-center">
                 <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>
@@ -568,7 +587,7 @@ export default function TutorList({ session, userProfile }) {
               </div>
             )}
 
-            {/* BƯỚC 4: THÀNH CÔNG VÀ CHỜ DUYỆT */}
+            {/* BƯỚC 4: THÀNH CÔNG VÀ CHỜ DUYỆT (GIỮ NGUYÊN) */}
             {paymentStep === 'success' && (
               <div className="p-10 text-center">
                 <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-amber-50"><Clock className="h-14 w-14 text-amber-500" /></div>
