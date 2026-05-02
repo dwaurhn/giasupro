@@ -11,7 +11,7 @@ import {
   Clock, CheckCircle2, XCircle, AlertTriangle, Calendar, DollarSign,
   Phone, Plus, Trash, Users, BookOpen, GraduationCap,
   CalendarDays, Loader2, MessageCircle, Video, Edit, Star, TrendingUp,
-  ShieldAlert, X, Send
+  ShieldAlert, X, Send, AlignLeft
 } from 'lucide-react';
 
 export default function Dashboard({ session }) {
@@ -21,29 +21,38 @@ export default function Dashboard({ session }) {
   const [chatPartner, setChatPartner] = useState(null);
   const [unreadCounts, setUnreadCounts] = useState({});
   const [lichRanhList, setLichRanhList] = useState([]);
-  const [newLichRanh, setNewLichRanh] = useState({ thu_trong_tuan: 2, gio_bat_dau: '', gio_ket_thuc: '', so_luong_toi_da: 1 });
+  
+  // ✅ CẬP NHẬT: Thêm trường mo_ta_chi_tiet vào state
+  const [newLichRanh, setNewLichRanh] = useState({ 
+    thu_trong_tuan: 2, 
+    gio_bat_dau: '', 
+    gio_ket_thuc: '', 
+    so_luong_toi_da: 1,
+    mo_ta_chi_tiet: '' 
+  });
+  
   const [ngayHienThi, setNgayHienThi] = useState('');
   const [isLapLai, setIsLapLai] = useState(true);
   const [reviews, setReviews] = useState([]);
 
   // ===== MODAL STATES =====
   const [showReportModal, setShowReportModal] = useState(false);
-  const [reportTarget, setReportTarget] = useState(null); // {idLichHoc, idGiaSu}
+  const [reportTarget, setReportTarget] = useState(null); 
   const [reportReason, setReportReason] = useState('');
-
+  
   const [showLinkModal, setShowLinkModal] = useState(false);
-  const [linkTarget, setLinkTarget] = useState(null); // {idLichHoc, currentLink}
+  const [linkTarget, setLinkTarget] = useState(null); 
   const [newLink, setNewLink] = useState('');
-
+  
   const [showDeleteLichModal, setShowDeleteLichModal] = useState(false);
   const [deleteLichTarget, setDeleteLichTarget] = useState(null);
-
+  
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [confirmConfig, setConfirmConfig] = useState({ title: '', message: '', onConfirm: null, color: 'blue' });
 
   // ===== RATING STATES =====
   const [showRatingPopup, setShowRatingPopup] = useState(false);
-  const [ratingTarget, setRatingTarget] = useState(null); // {idLichHoc, idGiaSu, tenGiaSu, avatarGiaSu}
+  const [ratingTarget, setRatingTarget] = useState(null); 
   const [ratingStars, setRatingStars] = useState(5);
   const [ratingComment, setRatingComment] = useState('');
 
@@ -54,6 +63,7 @@ export default function Dashboard({ session }) {
         if (!session?.user?.id) return;
         const { data: userData } = await getUserProfile(session.user.id);
         setProfile(userData);
+
         if (userData?.vai_tro === 'gia_su') {
           const [resBookings, resLichRanh, resReviews] = await Promise.all([
             getLichDayCuaGiaSu(session.user.id),
@@ -67,14 +77,17 @@ export default function Dashboard({ session }) {
           const { data: bookingData } = await getLichHocCuaHocVien(session.user.id);
           setBookings(bookingData || []);
         }
+
         const counts = await laySoTinNhanChuaDoc(session.user.id);
         setUnreadCounts(counts);
+
       } catch (err) {
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
+
     loadDashboardData();
 
     if (session?.user?.id) {
@@ -131,7 +144,6 @@ export default function Dashboard({ session }) {
         setShowConfirmModal(false);
       }, 'rose');
     } else if (!isHocVien && trangThaiMoi === 'da_thanh_toan') {
-      // Mở modal nhập link
       setLinkTarget({ idLichHoc, currentLink: '', mode: 'accept' });
       setNewLink('');
       setShowLinkModal(true);
@@ -141,12 +153,12 @@ export default function Dashboard({ session }) {
   const doUpdateStatus = async (idLichHoc, trangThaiMoi, isHocVien, linkPhong) => {
     const { error } = await capNhatTrangThaiLichHoc(idLichHoc, trangThaiMoi, linkPhong);
     if (error) { toast.error("Lỗi: " + error.message); return; }
-
+    
     setBookings(prev => prev.map(b => b.id === idLichHoc ? {
       ...b, trang_thai: trangThaiMoi,
       ...(linkPhong !== null && { link_phong_hoc: linkPhong })
     } : b));
-
+    
     const currentBooking = bookings.find(b => b.id === idLichHoc);
     if (currentBooking) {
       const targetUserId = isHocVien ? currentBooking.id_gia_su : currentBooking.id_hoc_vien;
@@ -154,6 +166,7 @@ export default function Dashboard({ session }) {
       if (trangThaiMoi === 'da_thanh_toan' && !isHocVien) thongBaoMsg = `🎉 Gia sư ${profile?.ho_ten} đã chấp nhận lịch học của bạn!`;
       else if (trangThaiMoi === 'da_huy') thongBaoMsg = `❌ ${profile?.ho_ten} vừa hủy một lịch học.`;
       else if (trangThaiMoi === 'yeu_cau_huy') thongBaoMsg = `⚠️ ${profile?.ho_ten} đang yêu cầu hủy lịch.`;
+      
       if (thongBaoMsg) taoThongBao(targetUserId, thongBaoMsg).catch(console.error);
     }
     toast.success("Cập nhật thành công!");
@@ -191,7 +204,6 @@ export default function Dashboard({ session }) {
         } else {
           toast.success("Đã xác nhận! Tiền đã được chuyển cho gia sư.");
           setBookings(prev => prev.map(b => b.id === item.id ? { ...b, trang_thai: 'hoan_thanh', hoc_vien_xac_nhan: true } : b));
-          // Mở popup đánh giá
           setRatingTarget({ idLichHoc: item.id, idGiaSu: item.id_gia_su, tenGiaSu: item.gia_su?.ho_ten, avatarGiaSu: item.gia_su?.avatar_url });
           setRatingStars(5);
           setRatingComment('');
@@ -211,11 +223,9 @@ export default function Dashboard({ session }) {
       so_sao: ratingStars,
       nhan_xet: ratingComment
     });
-    if (!error) {
-      toast.success("Cảm ơn bạn đã đánh giá!");
-    } else {
-      toast.error("Lỗi khi gửi đánh giá: " + error.message);
-    }
+    if (!error) toast.success("Cảm ơn bạn đã đánh giá!");
+    else toast.error("Lỗi khi gửi đánh giá: " + error.message);
+    
     setShowRatingPopup(false);
   };
 
@@ -224,6 +234,8 @@ export default function Dashboard({ session }) {
     e.preventDefault();
     if (!ngayHienThi) return toast.error("Vui lòng chọn ngày từ bảng lịch!");
     if (newLichRanh.gio_bat_dau >= newLichRanh.gio_ket_thuc) return toast.error("Giờ bắt đầu phải nhỏ hơn giờ kết thúc!");
+    
+    // ✅ CẬP NHẬT: Lưu thêm trường mo_ta_chi_tiet
     const dataToInsert = {
       id_gia_su: session.user.id,
       thu_trong_tuan: Number(newLichRanh.thu_trong_tuan),
@@ -231,14 +243,19 @@ export default function Dashboard({ session }) {
       gio_ket_thuc: newLichRanh.gio_ket_thuc,
       so_luong_toi_da: Number(newLichRanh.so_luong_toi_da),
       is_lap_lai: isLapLai,
-      ngay_cu_the: isLapLai ? null : ngayHienThi
+      ngay_cu_the: isLapLai ? null : ngayHienThi,
+      mo_ta_chi_tiet: newLichRanh.mo_ta_chi_tiet // Dòng mới
     };
+
     const { data, error } = await themLichRanh(dataToInsert);
+    
     if (!error && data) {
       toast.success("Thêm lịch rảnh thành công!");
       setLichRanhList([...lichRanhList, data[0]]);
       setNgayHienThi('');
       setIsLapLai(true);
+      // Reset form
+      setNewLichRanh({ thu_trong_tuan: 2, gio_bat_dau: '', gio_ket_thuc: '', so_luong_toi_da: 1, mo_ta_chi_tiet: '' });
     } else {
       toast.error("Có lỗi xảy ra: " + (error?.message || "Không thể lưu"));
     }
@@ -261,7 +278,6 @@ export default function Dashboard({ session }) {
   };
 
   const formatThu = (thuNum) => thuNum === 8 ? "Chủ Nhật" : `Thứ ${thuNum}`;
-
   const getAvatarUrl = (name) => `https://ui-avatars.com/api/?name=${encodeURIComponent(name || 'User')}&background=3B82F6&color=fff&size=128&bold=true&font-size=0.4`;
 
   const StatusBadge = ({ status }) => {
@@ -383,6 +399,7 @@ export default function Dashboard({ session }) {
                   <p className="text-sm text-gray-500">Quản lý các yêu cầu đặt lịch từ học viên</p>
                 </div>
               </div>
+
               {bookings.length > 0 ? (
                 <div className="space-y-4">
                   {[...bookings].sort((a, b) => {
@@ -392,6 +409,7 @@ export default function Dashboard({ session }) {
                     <div key={item.id} className={`group overflow-hidden rounded-[2rem] border bg-white shadow-sm transition-all duration-300 hover:shadow-lg ${item.trang_thai === 'dang_tranh_chap' ? 'border-red-300 ring-2 ring-red-100' : item.trang_thai === 'yeu_cau_huy' ? 'border-orange-200 ring-2 ring-orange-100' : 'border-gray-100'}`}>
                       {item.trang_thai === 'dang_tranh_chap' && <div className="flex items-center gap-2 bg-red-600 px-6 py-2 text-sm font-bold text-white animate-pulse"><ShieldAlert className="h-4 w-4" /> BỊ KHIẾU NẠI: Admin đang điều tra!</div>}
                       {item.trang_thai === 'yeu_cau_huy' && <div className="flex items-center gap-2 bg-gradient-to-r from-orange-500 to-amber-500 px-6 py-2 text-sm font-semibold text-white"><AlertTriangle className="h-4 w-4" /> Học viên yêu cầu hủy lịch này!</div>}
+                      
                       <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                         <div className="flex items-start gap-4">
                           <div className="h-14 w-14 flex-shrink-0 overflow-hidden rounded-xl border-2 border-emerald-100 shadow-sm">
@@ -409,11 +427,13 @@ export default function Dashboard({ session }) {
                             <div className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-bold text-rose-600"><DollarSign className="h-4 w-4" />{Number(item.tong_tien).toLocaleString()} VNĐ</div>
                           </div>
                         </div>
+
                         <div className="flex flex-shrink-0 gap-2 sm:flex-col sm:items-end">
                           <button onClick={() => { setChatPartner({ id: item.id_hoc_vien, ho_ten: item.hoc_vien?.ho_ten, avatar_url: item.hoc_vien?.avatar_url }); setUnreadCounts(prev => ({ ...prev, [item.id_hoc_vien]: 0 })); }} className="relative inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-100">
                             <MessageCircle className="h-4 w-4" /> Nhắn tin
                             {unreadCounts[item.id_hoc_vien] > 0 && <span className="absolute -right-2 -top-2 flex h-5 w-5 items-center justify-center rounded-full bg-rose-500 text-[10px] font-black text-white animate-bounce">{unreadCounts[item.id_hoc_vien]}</span>}
                           </button>
+                          
                           {item.trang_thai === 'da_thanh_toan' && (
                             <div className="flex flex-wrap gap-2 mt-1 justify-end">
                               {item.link_phong_hoc ? (
@@ -427,12 +447,14 @@ export default function Dashboard({ session }) {
                               <button onClick={() => handleUpdateStatus(item.id, 'da_huy', false)} className="inline-flex items-center gap-2 rounded-xl border border-rose-200 bg-rose-50 px-3 py-2.5 text-sm font-bold text-rose-600 hover:bg-rose-100"><XCircle className="h-4 w-4" /> Hủy lịch</button>
                             </div>
                           )}
+
                           {item.trang_thai === 'cho_xac_nhan' && (
                             <div className="flex gap-2 mt-1">
                               <button onClick={() => handleUpdateStatus(item.id, 'da_thanh_toan', false)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-green-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5"><CheckCircle2 className="h-4 w-4" /> Chấp nhận</button>
                               <button onClick={() => handleUpdateStatus(item.id, 'da_huy', false)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5"><XCircle className="h-4 w-4" /> Từ chối</button>
                             </div>
                           )}
+                          
                           {item.trang_thai === 'yeu_cau_huy' && (
                             <div className="flex gap-2 mt-1">
                               <button onClick={() => handleUpdateStatus(item.id, 'da_huy', false)} className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-rose-500 to-red-500 px-5 py-2.5 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5"><XCircle className="h-4 w-4" /> Đồng ý hủy</button>
@@ -452,47 +474,96 @@ export default function Dashboard({ session }) {
               )}
             </section>
 
-            {/* LỊCH RẢNH */}
+            {/* LỊCH RẢNH CỦA GIA SƯ */}
             <section className="overflow-hidden rounded-[2rem] border border-cyan-100 bg-gradient-to-br from-cyan-50 via-white to-blue-50 shadow-sm">
               <div className="border-b border-cyan-100 bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-5">
                 <div className="flex items-center gap-3">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-white/20"><Clock className="h-5 w-5 text-white" /></div>
-                  <div><h2 className="text-lg font-bold text-white">Cài Đặt Lịch Rảnh</h2><p className="text-sm text-cyan-100">Thiết lập khung giờ dạy lớp nhóm</p></div>
+                  <div><h2 className="text-lg font-bold text-white">Cài Đặt Lịch Rảnh</h2><p className="text-sm text-cyan-100">Thiết lập khung giờ dạy và lộ trình học</p></div>
                 </div>
               </div>
+              
               <div className="p-6">
-                <form onSubmit={handleAddLichRanh} className="mb-6 flex flex-wrap items-end gap-4 rounded-2xl bg-white p-5 shadow-sm">
-                  <div className="min-w-[150px] flex-1">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Chọn Ngày</label>
-                    <input type="date" required value={ngayHienThi} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setNgayHienThi(e.target.value); if (e.target.value) { const dateObj = new Date(e.target.value); const thu = dateObj.getDay() === 0 ? 8 : dateObj.getDay() + 1; setNewLichRanh({ ...newLichRanh, thu_trong_tuan: thu }); } }} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
-                    {ngayHienThi && <label className="mt-2 flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={isLapLai} onChange={(e) => setIsLapLai(e.target.checked)} className="h-4 w-4 rounded border-cyan-300 text-cyan-600" /><span className="text-[12px] font-bold text-cyan-700">Lặp lại vào mọi {formatThu(newLichRanh.thu_trong_tuan)}</span></label>}
+                {/* ✅ CẬP NHẬT FORM: Chuyển flex thành grid/flex-col để chứa field dài */}
+                <form onSubmit={handleAddLichRanh} className="mb-8 flex flex-col gap-4 rounded-2xl bg-white p-6 shadow-sm border border-cyan-50">
+                  <div className="flex flex-wrap items-end gap-4">
+                    <div className="min-w-[150px] flex-1">
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Chọn Ngày</label>
+                      <input type="date" required value={ngayHienThi} min={new Date().toISOString().split('T')[0]} onChange={(e) => { setNgayHienThi(e.target.value); if (e.target.value) { const dateObj = new Date(e.target.value); const thu = dateObj.getDay() === 0 ? 8 : dateObj.getDay() + 1; setNewLichRanh({ ...newLichRanh, thu_trong_tuan: thu }); } }} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+                      {ngayHienThi && <label className="mt-2 flex items-center gap-2 cursor-pointer"><input type="checkbox" checked={isLapLai} onChange={(e) => setIsLapLai(e.target.checked)} className="h-4 w-4 rounded border-cyan-300 text-cyan-600" /><span className="text-[12px] font-bold text-cyan-700">Lặp lại vào mọi {formatThu(newLichRanh.thu_trong_tuan)}</span></label>}
+                    </div>
+                    <div className="min-w-[130px]">
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Bắt đầu</label>
+                      <input type="time" required value={newLichRanh.gio_bat_dau} onChange={(e) => setNewLichRanh({ ...newLichRanh, gio_bat_dau: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+                    </div>
+                    <div className="min-w-[130px]">
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Kết thúc</label>
+                      <input type="time" required value={newLichRanh.gio_ket_thuc} onChange={(e) => setNewLichRanh({ ...newLichRanh, gio_ket_thuc: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+                    </div>
+                    <div className="w-24">
+                      <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Số HS</label>
+                      <input type="number" min="1" required value={newLichRanh.so_luong_toi_da} onChange={(e) => setNewLichRanh({ ...newLichRanh, so_luong_toi_da: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+                    </div>
                   </div>
-                  <div className="min-w-[130px]">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Bắt đầu</label>
-                    <input type="time" required value={newLichRanh.gio_bat_dau} onChange={(e) => setNewLichRanh({ ...newLichRanh, gio_bat_dau: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+
+                  {/* ✅ THÊM TRƯỜNG NHẬP MÔ TẢ CHI TIẾT */}
+                  <div className="w-full mt-2">
+                    <label className="mb-1.5 flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-gray-500">
+                      <AlignLeft className="h-4 w-4" /> Chi tiết buổi học / Lộ trình lớp này
+                    </label>
+                    <textarea 
+                      rows="3" 
+                      placeholder="VD: Lớp luyện thi Đại học cấp tốc môn Toán. Hôm nay giải đề số 1..." 
+                      value={newLichRanh.mo_ta_chi_tiet} 
+                      onChange={(e) => setNewLichRanh({ ...newLichRanh, mo_ta_chi_tiet: e.target.value })} 
+                      className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" 
+                    />
                   </div>
-                  <div className="min-w-[130px]">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Kết thúc</label>
-                    <input type="time" required value={newLichRanh.gio_ket_thuc} onChange={(e) => setNewLichRanh({ ...newLichRanh, gio_ket_thuc: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
+
+                  <div className="flex justify-end border-t border-slate-100 pt-4 mt-2">
+                    <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-3 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5 transition-all">
+                      <Plus className="h-4 w-4" /> Thêm lịch dạy
+                    </button>
                   </div>
-                  <div className="w-24">
-                    <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wider text-gray-500">Số HS</label>
-                    <input type="number" min="1" required value={newLichRanh.so_luong_toi_da} onChange={(e) => setNewLichRanh({ ...newLichRanh, so_luong_toi_da: e.target.value })} className="w-full rounded-xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm font-medium text-gray-700 focus:border-cyan-500 focus:outline-none focus:ring-4 focus:ring-cyan-500/10" />
-                  </div>
-                  <button type="submit" className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-500 px-6 py-3 text-sm font-bold text-white shadow-lg hover:-translate-y-0.5"><Plus className="h-4 w-4" />Thêm lịch</button>
                 </form>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+
+                <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-2">
                   {lichRanhList.map((lich) => (
-                    <div key={lich.id} className="group relative overflow-hidden rounded-2xl border border-gray-100 bg-white p-5 shadow-sm hover:border-cyan-200 hover:shadow-md">
-                      <button onClick={() => handleDeleteLichRanh(lich.id)} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 opacity-0 hover:bg-rose-100 hover:text-rose-500 group-hover:opacity-100"><Trash className="h-4 w-4" /></button>
-                      <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-3 py-1.5 text-sm font-bold text-white shadow-sm"><Calendar className="h-4 w-4" />{lich.is_lap_lai === false && lich.ngay_cu_the ? new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN') : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}</div>
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-gray-700"><Clock className="h-4 w-4 text-cyan-500" /><span className="text-sm"><span className="font-semibold">{lich.gio_bat_dau.substring(0, 5)}</span> - <span className="font-semibold">{lich.gio_ket_thuc.substring(0, 5)}</span></span></div>
-                        <div className="flex items-center gap-2 text-emerald-600"><Users className="h-4 w-4" /><span className="text-sm font-semibold">Tối đa {lich.so_luong_toi_da} học viên</span></div>
+                    <div key={lich.id} className="group relative overflow-hidden rounded-2xl border border-gray-200 bg-white p-5 shadow-sm hover:border-cyan-300 hover:shadow-md transition-all">
+                      <button onClick={() => handleDeleteLichRanh(lich.id)} className="absolute right-3 top-3 flex h-8 w-8 items-center justify-center rounded-full bg-gray-100 text-gray-400 opacity-0 hover:bg-rose-100 hover:text-rose-500 group-hover:opacity-100 transition-all"><Trash className="h-4 w-4" /></button>
+                      
+                      <div className="mb-3 inline-flex items-center gap-2 rounded-lg bg-gradient-to-r from-cyan-500 to-blue-500 px-3 py-1.5 text-sm font-bold text-white shadow-sm">
+                        <Calendar className="h-4 w-4" />
+                        {lich.is_lap_lai === false && lich.ngay_cu_the ? new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN') : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}
                       </div>
+                      
+                      <div className="space-y-2 mb-2">
+                        <div className="flex items-center gap-2 text-gray-800">
+                          <Clock className="h-4 w-4 text-cyan-500" />
+                          <span className="text-sm"><span className="font-bold">{lich.gio_bat_dau.substring(0, 5)}</span> - <span className="font-bold">{lich.gio_ket_thuc.substring(0, 5)}</span></span>
+                        </div>
+                        <div className="flex items-center gap-2 text-emerald-600">
+                          <Users className="h-4 w-4" />
+                          <span className="text-sm font-semibold">Tối đa {lich.so_luong_toi_da} học viên</span>
+                        </div>
+                      </div>
+
+                      {/* ✅ HIỂN THỊ CHI TIẾT DƯỚI KHUNG GIỜ */}
+                      {lich.mo_ta_chi_tiet && (
+                        <div className="mt-4 pt-3 border-t border-slate-100 text-sm text-slate-600 whitespace-pre-wrap">
+                          <span className="font-bold text-cyan-700 flex items-center gap-1 mb-1"><AlignLeft className="h-3 w-3"/> Chi tiết lớp:</span>
+                          <span className="leading-relaxed block">{lich.mo_ta_chi_tiet}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
-                  {lichRanhList.length === 0 && <div className="col-span-full rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center"><Clock className="mx-auto mb-2 h-8 w-8 text-gray-300" /><p className="text-sm text-gray-500">Chưa có lịch rảnh nào</p></div>}
+                  
+                  {lichRanhList.length === 0 && (
+                    <div className="col-span-full rounded-2xl border-2 border-dashed border-gray-200 p-8 text-center bg-white/50">
+                      <Clock className="mx-auto mb-2 h-8 w-8 text-gray-300" />
+                      <p className="text-sm text-gray-500">Chưa có lịch rảnh nào</p>
+                    </div>
+                  )}
                 </div>
               </div>
             </section>
@@ -506,6 +577,7 @@ export default function Dashboard({ session }) {
               <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><BookOpen className="h-5 w-5" /></div>
               <div><h2 className="text-xl font-bold text-gray-900">Lịch học đã đặt</h2><p className="text-sm text-gray-500">Theo dõi và quản lý các buổi học của bạn</p></div>
             </div>
+            
             {bookings.length > 0 ? (
               <div className="space-y-4">
                 {[...bookings].sort((a, b) => {
@@ -514,6 +586,7 @@ export default function Dashboard({ session }) {
                 }).map((item) => (
                   <div key={item.id} className={`group overflow-hidden rounded-[2rem] border bg-white shadow-sm transition-all duration-300 hover:shadow-lg ${item.trang_thai === 'dang_tranh_chap' ? 'border-red-300 ring-2 ring-red-100' : 'border-gray-100'}`}>
                     {item.trang_thai === 'dang_tranh_chap' && <div className="flex items-center gap-2 bg-red-600 px-6 py-2 text-sm font-bold text-white"><ShieldAlert className="h-4 w-4" /> ĐÃ GỬI BÁO CÁO: Lịch học đang bị đóng băng chờ Admin giải quyết.</div>}
+                    
                     <div className="flex flex-col gap-4 p-6 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex items-start gap-4">
                         <div className="h-16 w-16 flex-shrink-0 overflow-hidden rounded-2xl border-2 border-blue-100 shadow-sm"><img src={item.gia_su?.avatar_url || getAvatarUrl(item.gia_su?.ho_ten)} alt="" className="h-full w-full object-cover" /></div>
@@ -527,6 +600,7 @@ export default function Dashboard({ session }) {
                           {item.tong_tien && <div className="inline-flex items-center gap-1.5 rounded-lg bg-rose-50 px-3 py-1.5 text-sm font-bold text-rose-600"><DollarSign className="h-4 w-4" />{Number(item.tong_tien).toLocaleString()} VNĐ</div>}
                         </div>
                       </div>
+
                       <div className="flex flex-shrink-0 gap-2 sm:flex-col sm:items-end">
                         <button onClick={() => { setChatPartner({ id: item.id_gia_su, ho_ten: item.gia_su?.ho_ten, avatar_url: item.gia_su?.avatar_url }); setUnreadCounts(prev => ({ ...prev, [item.id_gia_su]: 0 })); }} className="relative inline-flex items-center gap-2 rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 text-sm font-bold text-blue-600 hover:bg-blue-100">
                           <MessageCircle className="h-4 w-4" /> Nhắn tin
@@ -681,6 +755,7 @@ export default function Dashboard({ session }) {
                   <p className="text-sm text-slate-500">Hãy chia sẻ trải nghiệm của bạn!</p>
                 </div>
               </div>
+              
               <div>
                 <p className="mb-2 text-sm font-bold text-slate-700">Chất lượng giảng dạy</p>
                 <div className="flex gap-2">
@@ -691,10 +766,12 @@ export default function Dashboard({ session }) {
                   ))}
                 </div>
               </div>
+
               <div>
                 <label className="mb-1.5 block text-sm font-bold text-slate-700">Nhận xét (Tùy chọn)</label>
                 <textarea rows="3" placeholder="Gia sư dạy rất dễ hiểu, nhiệt tình..." value={ratingComment} onChange={e => setRatingComment(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-3 text-sm outline-none focus:border-amber-400 focus:ring-4 focus:ring-amber-400/10" />
               </div>
+
               <div className="flex gap-3">
                 <button onClick={() => setShowRatingPopup(false)} className="flex-1 rounded-xl bg-slate-100 py-3 text-sm font-bold text-slate-600 hover:bg-slate-200">Bỏ qua</button>
                 <button onClick={handleSubmitRating} className="flex-1 rounded-xl bg-gradient-to-r from-amber-400 to-orange-400 py-3 text-sm font-bold text-white hover:opacity-90 active:scale-95 transition-all flex items-center justify-center gap-2">

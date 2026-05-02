@@ -17,13 +17,11 @@ export default function TutorDetail({ session, userProfile }) {
   const [tutor, setTutor] = useState(null);
   const [lichRanh, setLichRanh] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [ngayChon, setNgayChon] = useState('');
   const [lichDaDat, setLichDaDat] = useState([]);
   const [khungGioChon, setKhungGioChon] = useState(null);
   const [totalPrice, setTotalPrice] = useState(0);
-
   const [reviews, setReviews] = useState([]);
   const [isReviewModalOpen, setIsReviewModalOpen] = useState(false);
   const [rating, setRating] = useState(5);
@@ -39,12 +37,13 @@ export default function TutorDetail({ session, userProfile }) {
     const fetchTutorDetails = async () => {
       setLoading(true);
       
+      // ✅ CẬP NHẬT: Thêm lo_trinh_hoc vào lệnh select
       const { data: tutorData, error: tutorError } = await supabase
         .from('nguoi_dung')
-        .select(`*, chi_tiet_gia_su (mon_hoc, gia_tien_moi_gio, gioi_thieu)`)
+        .select(`*, chi_tiet_gia_su (mon_hoc, gia_tien_moi_gio, gioi_thieu, lo_trinh_hoc)`) 
         .eq('id', id)
         .single();
-
+        
       if (tutorError) {
         console.error("Lỗi tải thông tin:", tutorError);
         setLoading(false);
@@ -81,7 +80,7 @@ export default function TutorDetail({ session, userProfile }) {
   const handleOpenModal = async () => {
     if (tutor.id === session.user.id) return toast.error("Bạn không thể tự đặt lịch học của chính mình!");
     if (userProfile?.vai_tro === 'gia_su') return toast.error("Chỉ có Học viên mới được đặt lịch!");
-
+    
     setNgayChon('');
     setKhungGioChon(null);
     setTotalPrice(0);
@@ -96,10 +95,13 @@ export default function TutorDetail({ session, userProfile }) {
     const currentDay = today.getDay(); 
     const targetDay = thu === 8 ? 0 : thu - 1;
     let daysToAdd = (targetDay + 7 - currentDay) % 7;
+    
     const nextDate = new Date();
     nextDate.setDate(today.getDate() + daysToAdd);
+    
     const offset = nextDate.getTimezoneOffset();
     const localDate = new Date(nextDate.getTime() - (offset * 60 * 1000));
+    
     return localDate.toISOString().split('T')[0];
   };
 
@@ -140,7 +142,6 @@ export default function TutorDetail({ session, userProfile }) {
     setTotalPrice(((end - start) / (1000 * 60 * 60)) * hocPhi);
   };
 
-  // ===== XỬ LÝ ĐẶT LỊCH → MỞ MODAL THANH TOÁN =====
   const handleBooking = async (e) => {
     e.preventDefault();
     if (!khungGioChon || !ngayChon) return toast.error("Vui lòng chọn ngày và khung giờ học!");
@@ -154,7 +155,6 @@ export default function TutorDetail({ session, userProfile }) {
       trang_thai: 'cho_xac_nhan'
     };
 
-    // Lưu lại bookingData rồi mở modal thanh toán
     setPendingBookingData(bookingData);
     setSelectedPayment(null);
     setPaymentStep('select');
@@ -162,28 +162,21 @@ export default function TutorDetail({ session, userProfile }) {
     setShowPaymentModal(true);
   };
 
-  // ===== XỬ LÝ THANH TOÁN =====
   const handleConfirmPayment = async () => {
     if (!selectedPayment) return toast.error("Vui lòng chọn phương thức thanh toán!");
-
-    // Bước 1: Chuyển sang màn hình đang xử lý
+    
     setPaymentStep('processing');
-
-    // Bước 2: Giả lập 2.5 giây xử lý
     await new Promise(resolve => setTimeout(resolve, 2500));
-
-    // Bước 3: Lưu booking vào DB
+    
     const { error } = await guiYeuCauDatLich(pendingBookingData);
     if (error) {
       toast.error("Lỗi đặt lịch: " + error.message);
       setShowPaymentModal(false);
       return;
     }
-
-    // ✅ ĐÃ THÊM: Cộng tiền chờ duyệt cho gia sư
+    
     await congTienChoGiaSu(id, pendingBookingData.tong_tien);
-
-    // Bước 4: Gửi thông báo cho gia sư
+    
     const tenHocVien = userProfile?.ho_ten || 'Một học viên';
     try {
       await supabase.from('thong_bao').insert([{
@@ -193,7 +186,6 @@ export default function TutorDetail({ session, userProfile }) {
       }]);
     } catch (err) { console.error(err); }
 
-    // Bước 5: Hiện màn hình thành công
     setPaymentStep('success');
   };
 
@@ -208,14 +200,14 @@ export default function TutorDetail({ session, userProfile }) {
   const handleSubmitReview = async (e) => {
     e.preventDefault();
     if (!comment.trim()) return toast.error("Vui lòng nhập nội dung đánh giá!");
-
+    
     const newReview = {
       id_gia_su: tutor.id,
       id_hoc_vien: session.user.id,
       so_sao: rating,
       nhan_xet: comment 
     };
-
+    
     const { data, error } = await guiDanhGia(newReview);
     if (!error && data) {
       toast.success("Cảm ơn bạn đã đánh giá Gia sư!");
@@ -233,6 +225,7 @@ export default function TutorDetail({ session, userProfile }) {
   };
 
   const formatThu = (thuNum) => thuNum === 8 ? "Chủ Nhật" : `Thứ ${thuNum}`;
+  
   const jsDate = ngayChon ? new Date(ngayChon) : null;
   const thuCuaNgayChon = jsDate ? (jsDate.getDay() === 0 ? 8 : jsDate.getDay() + 1) : null;
   
@@ -247,7 +240,7 @@ export default function TutorDetail({ session, userProfile }) {
   const getSlotClasses = (khung) => {
     const soLuongToiDa = khung.so_luong_toi_da || 1;
     if (!ngayChon) return { wrapper: '', icon: null, status: '', disabled: false };
-
+    
     const startString = `${ngayChon}T${khung.gio_bat_dau}`;
     const cacLuotDat = lichDaDat.filter(dat => dat.thoi_gian_bat_dau.includes(startString));
     const soChoTrong = soLuongToiDa - cacLuotDat.length;
@@ -258,37 +251,14 @@ export default function TutorDetail({ session, userProfile }) {
     if (isBookedByMe) return { wrapper: 'border-gray-200 bg-gray-100 text-gray-400 cursor-not-allowed opacity-60', icon: <UserCheck className="mx-auto mb-1 h-4 w-4 text-gray-400" />, status: 'Bạn đã đặt', disabled: true };
     if (isFull) return { wrapper: 'border-red-200 bg-red-50 text-red-400 cursor-not-allowed opacity-70', icon: <XCircle className="mx-auto mb-1 h-4 w-4 text-red-400" />, status: 'Đã kín chỗ', disabled: true };
     if (isSelected) return { wrapper: 'border-green-500 bg-green-50 text-green-700 ring-2 ring-green-500/20 shadow-md', icon: <CheckCircle2 className="mx-auto mb-1 h-4 w-4 text-green-600" />, status: 'Đang chọn', disabled: false };
+    
     return { wrapper: 'border-gray-200 bg-white text-gray-700 cursor-pointer hover:border-blue-400 hover:shadow-md hover:bg-blue-50/30 transition-all', icon: <Users className="mx-auto mb-1 h-4 w-4 text-gray-400" />, status: `Còn ${soChoTrong}/${soLuongToiDa} chỗ`, disabled: false };
   };
 
   const paymentMethods = [
-    {
-      id: 'VNPay',
-      name: 'VNPay',
-      desc: 'Thanh toán qua cổng VNPay',
-      icon: '🏦',
-      color: 'border-blue-200 bg-blue-50',
-      selectedColor: 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50',
-      textColor: 'text-blue-700'
-    },
-    {
-      id: 'MoMo',
-      name: 'Ví MoMo',
-      desc: 'Thanh toán qua ví điện tử MoMo',
-      icon: '💜',
-      color: 'border-pink-200 bg-pink-50',
-      selectedColor: 'border-pink-500 ring-2 ring-pink-500/20 bg-pink-50',
-      textColor: 'text-pink-700'
-    },
-    {
-      id: 'Chuyển khoản ngân hàng',
-      name: 'Chuyển khoản',
-      desc: 'Chuyển khoản ngân hàng trực tiếp',
-      icon: '🏧',
-      color: 'border-emerald-200 bg-emerald-50',
-      selectedColor: 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50',
-      textColor: 'text-emerald-700'
-    }
+    { id: 'VNPay', name: 'VNPay', desc: 'Thanh toán qua cổng VNPay', icon: '🏦', color: 'border-blue-200 bg-blue-50', selectedColor: 'border-blue-500 ring-2 ring-blue-500/20 bg-blue-50', textColor: 'text-blue-700' },
+    { id: 'MoMo', name: 'Ví MoMo', desc: 'Thanh toán qua ví điện tử MoMo', icon: '💜', color: 'border-pink-200 bg-pink-50', selectedColor: 'border-pink-500 ring-2 ring-pink-500/20 bg-pink-50', textColor: 'text-pink-700' },
+    { id: 'Chuyển khoản ngân hàng', name: 'Chuyển khoản', desc: 'Chuyển khoản ngân hàng trực tiếp', icon: '🏧', color: 'border-emerald-200 bg-emerald-50', selectedColor: 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50', textColor: 'text-emerald-700' }
   ];
 
   if (loading) {
@@ -339,7 +309,6 @@ export default function TutorDetail({ session, userProfile }) {
               <div className="mb-6 inline-flex items-center gap-1.5 rounded-full bg-blue-50 px-3 py-1 text-xs font-bold text-blue-600 uppercase tracking-wider">
                 <GraduationCap className="h-4 w-4" /> Gia Sư Nền Tảng
               </div>
-
               <div className="flex flex-col gap-3 text-left text-sm text-slate-600 mb-6">
                 {tutor.dia_chi && (
                   <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3">
@@ -354,7 +323,6 @@ export default function TutorDetail({ session, userProfile }) {
                   </div>
                 )}
               </div>
-
               <button 
                 onClick={handleOpenModal}
                 className="w-full rounded-2xl bg-blue-600 py-4 text-sm font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 active:scale-95 flex items-center justify-center gap-2"
@@ -363,7 +331,7 @@ export default function TutorDetail({ session, userProfile }) {
                 Đặt Lịch Học Ngay
               </button>
             </div>
-
+            
             <div className="rounded-[2rem] border border-amber-100 bg-amber-50/50 p-6 text-center">
               <p className="mb-2 text-xs font-bold uppercase tracking-widest text-amber-600">Đánh giá chung</p>
               <div className="flex items-center justify-center gap-2">
@@ -372,7 +340,7 @@ export default function TutorDetail({ session, userProfile }) {
               </div>
               <p className="mt-2 text-sm font-medium text-amber-700/70">Dựa trên {reviews.length} nhận xét</p>
             </div>
-
+            
             <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50 p-6 text-center">
               <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-600">Học phí đề xuất</p>
               <p className="text-3xl font-black text-emerald-700">
@@ -401,6 +369,43 @@ export default function TutorDetail({ session, userProfile }) {
                   {tutor.chi_tiet_gia_su?.gioi_thieu || "Gia sư này chưa cập nhật phần giới thiệu bản thân."}
                 </div>
               </div>
+
+              {/* ✅ HIỂN THỊ LỘ TRÌNH DẠNG TIMELINE Ở ĐÂY */}
+              <div className="pt-6 mt-6 border-t border-slate-100">
+                <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Lộ trình học chi tiết (Dự kiến)</h3>
+                
+                {(() => {
+                  let loTrinhArr = [];
+                  try {
+                    loTrinhArr = tutor.chi_tiet_gia_su?.lo_trinh_hoc ? JSON.parse(tutor.chi_tiet_gia_su.lo_trinh_hoc) : [];
+                  } catch(e) {
+                    loTrinhArr = [];
+                  }
+
+                  if (loTrinhArr.length === 0 || (loTrinhArr.length === 1 && !loTrinhArr[0].noi_dung)) {
+                    return (
+                      <div className="rounded-2xl bg-blue-50/50 border border-blue-100 p-6 text-slate-500 text-sm italic">
+                        Gia sư chưa thiết lập lộ trình học cụ thể. Hãy nhắn tin trực tiếp để trao đổi thêm.
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="space-y-6 ml-2 mt-2">
+                      {loTrinhArr.map((item, idx) => (
+                        <div key={idx} className="relative pl-6 border-l-2 border-blue-200 pb-2 last:border-transparent">
+                          <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-blue-500"></div>
+                          <h4 className="font-bold text-blue-700 leading-none mb-2">{item.tuan}</h4>
+                          <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed border border-slate-100 shadow-sm">
+                            {item.noi_dung || "Chưa có nội dung cho tuần này."}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                })()}
+              </div>
+
             </div>
 
             <div className="rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-sm">
@@ -413,18 +418,28 @@ export default function TutorDetail({ session, userProfile }) {
               {lichRanh.length > 0 ? (
                 <div className="grid gap-4 sm:grid-cols-2">
                   {lichRanh.map((lich) => (
-                    <div key={lich.id} className="flex items-center justify-between rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-cyan-200 hover:bg-cyan-50/30">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-white shadow-sm text-cyan-600 font-black">
-                          <span className="text-[10px] uppercase text-slate-400">Thứ</span>
-                          {lich.thu_trong_tuan}
+                    <div key={lich.id} className="flex flex-col rounded-2xl border border-slate-100 bg-slate-50 p-4 transition-all hover:border-cyan-200 hover:bg-cyan-50/30">
+                      <div className="flex items-center justify-between">
+                        <div className="flex items-center gap-3">
+                          <div className="flex h-12 w-12 flex-col items-center justify-center rounded-xl bg-white shadow-sm text-cyan-600 font-black">
+                            <span className="text-[10px] uppercase text-slate-400">Thứ</span>
+                            {lich.thu_trong_tuan}
+                          </div>
+                          <div>
+                            <p className="font-bold text-slate-900 text-sm">{lich.gio_bat_dau.substring(0, 5)} - {lich.gio_ket_thuc.substring(0, 5)}</p>
+                            <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5"><Users className="h-3 w-3" /> Tối đa {lich.so_luong_toi_da} HS</p>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-bold text-slate-900 text-sm">{lich.gio_bat_dau.substring(0, 5)} - {lich.gio_ket_thuc.substring(0, 5)}</p>
-                          <p className="text-xs text-slate-500 font-medium flex items-center gap-1 mt-0.5"><Users className="h-3 w-3" /> Tối đa {lich.so_luong_toi_da} HS</p>
-                        </div>
+                        <CheckCircle2 className="h-5 w-5 text-emerald-500 opacity-50" />
                       </div>
-                      <CheckCircle2 className="h-5 w-5 text-emerald-500 opacity-50" />
+                      
+                      {/* ✅ HIỂN THỊ CHI TIẾT LỚP HỌC */}
+                      {lich.mo_ta_chi_tiet && (
+                        <div className="mt-3 pt-3 border-t border-slate-200/60 text-sm text-slate-600 whitespace-pre-wrap">
+                          <span className="font-bold text-cyan-700 block mb-1">Chi tiết lớp học:</span>
+                          <span className="leading-relaxed">{lich.mo_ta_chi_tiet}</span>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -476,6 +491,7 @@ export default function TutorDetail({ session, userProfile }) {
                 </div>
               )}
             </div>
+
           </div>
         </div>
       </div>
@@ -503,12 +519,25 @@ export default function TutorDetail({ session, userProfile }) {
                     {lichRanh.map((lich) => {
                       const isMatched = khungGioChon?.id === lich.id;
                       return (
-                        <li key={lich.id} onClick={() => handleSelectSuggestedSlot(lich)} className={`flex items-center gap-2 p-3 rounded-lg border shadow-sm cursor-pointer transition-all ${isMatched ? 'border-green-500 bg-green-50 ring-2 ring-green-500/20' : 'border-blue-100/50 bg-white hover:border-blue-300 hover:bg-blue-50'}`}>
-                          <CheckCircle2 className={`h-4 w-4 shrink-0 ${isMatched ? 'text-green-600' : 'text-emerald-500'}`} />
-                          <span className={`font-bold ${isMatched ? 'text-green-700' : 'text-gray-800'}`}>
-                            {lich.is_lap_lai === false && lich.ngay_cu_the ? `Ngày ${new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN')}` : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}
-                          </span>
-                          <span className={`text-xs ${isMatched ? 'text-green-600' : 'text-gray-500'}`}>({lich.gio_bat_dau.substring(0, 5)} - {lich.gio_ket_thuc.substring(0, 5)})</span>
+                    <li key={lich.id} onClick={() => handleSelectSuggestedSlot(lich)} className={`flex items-start gap-3 p-3 rounded-lg border shadow-sm cursor-pointer transition-all ${isMatched ? 'border-green-500 bg-green-50 ring-2 ring-green-500/20' : 'border-blue-100/50 bg-white hover:border-blue-300 hover:bg-blue-50'}`}>
+                          <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${isMatched ? 'text-green-600' : 'text-emerald-500'}`} />
+                          <div className="flex flex-col flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <span className={`font-bold ${isMatched ? 'text-green-700' : 'text-gray-800'}`}>
+                                {lich.is_lap_lai === false && lich.ngay_cu_the ? `Ngày ${new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN')}` : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}
+                              </span>
+                              <span className={`text-xs font-bold ${isMatched ? 'text-green-700' : 'text-blue-600'}`}>
+                                {lich.gio_bat_dau.substring(0, 5)} - {lich.gio_ket_thuc.substring(0, 5)}
+                              </span>
+                            </div>
+                            
+                            {/* ✅ HIỂN THỊ MÔ TẢ TRONG MODAL ĐẶT LỊCH */}
+                            {lich.mo_ta_chi_tiet && (
+                              <span className={`text-xs mt-1.5 leading-relaxed line-clamp-2 ${isMatched ? 'text-green-700' : 'text-gray-500'}`}>
+                                <b className={isMatched ? "text-green-800" : "text-gray-700"}>Nội dung:</b> {lich.mo_ta_chi_tiet}
+                              </span>
+                            )}
+                          </div>
                         </li>
                       );
                     })}
@@ -573,7 +602,7 @@ export default function TutorDetail({ session, userProfile }) {
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md animate-[fadeIn_0.25s_ease-out] rounded-2xl bg-white shadow-2xl overflow-hidden">
-
+            
             {/* ===== BƯỚC 1: CHỌN PHƯƠNG THỨC ===== */}
             {paymentStep === 'select' && (
               <>
@@ -585,7 +614,6 @@ export default function TutorDetail({ session, userProfile }) {
                   </div>
                   <p className="text-sm text-blue-100">Chọn phương thức thanh toán phù hợp</p>
                 </div>
-
                 <div className="p-6 space-y-4">
                   {/* Tóm tắt đơn hàng */}
                   <div className="rounded-xl border border-slate-100 bg-slate-50 p-4">
@@ -646,7 +674,7 @@ export default function TutorDetail({ session, userProfile }) {
                 </div>
                 <h3 className="text-2xl font-black text-slate-900 mb-2">Thanh toán thành công!</h3>
                 <p className="text-slate-500 text-sm mb-6">Yêu cầu đặt lịch đã được gửi đến <b>{tutor.ho_ten}</b>. Gia sư sẽ xác nhận sớm nhất có thể.</p>
-
+                
                 <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4 mb-6 text-sm text-left space-y-2">
                   <div className="flex justify-between"><span className="text-slate-500">Phương thức</span><span className="font-bold text-emerald-700">{selectedPayment}</span></div>
                   <div className="flex justify-between"><span className="text-slate-500">Số tiền</span><span className="font-bold text-emerald-700">{totalPrice.toLocaleString()} VNĐ</span></div>
@@ -671,6 +699,7 @@ export default function TutorDetail({ session, userProfile }) {
             </button>
             <h3 className="mb-2 text-xl font-black text-slate-900">Đánh giá Gia sư</h3>
             <p className="mb-6 text-sm text-slate-500">Chia sẻ trải nghiệm học tập của bạn với {tutor.ho_ten}</p>
+            
             <form onSubmit={handleSubmitReview} className="space-y-6">
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700">Chất lượng giảng dạy</label>
@@ -682,10 +711,12 @@ export default function TutorDetail({ session, userProfile }) {
                   ))}
                 </div>
               </div>
+
               <div>
                 <label className="mb-2 block text-sm font-bold text-slate-700">Chia sẻ thêm (Tùy chọn)</label>
                 <textarea rows="4" placeholder="Gia sư dạy rất dễ hiểu, tài liệu đầy đủ..." value={comment} onChange={(e) => setComment(e.target.value)} className="w-full rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-800 outline-none focus:border-blue-500 focus:bg-white focus:ring-4 focus:ring-blue-500/10 transition-all" />
               </div>
+
               <button type="submit" className="w-full rounded-xl bg-blue-600 py-3.5 font-bold text-white shadow-lg shadow-blue-500/30 transition-all hover:bg-blue-700 active:scale-95 flex items-center justify-center gap-2">
                 <Send className="h-4 w-4" /> Gửi Đánh Giá
               </button>

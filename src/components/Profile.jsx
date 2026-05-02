@@ -18,15 +18,19 @@ export default function Profile({ session, userProfile, setUserProfile }) {
   const [profile, setProfile] = useState(null);
   const [reviews, setReviews] = useState([]);
   const [lichRanh, setLichRanh] = useState([]);
+  
+  // ✅ THÊM MỚI: State quản lý danh sách lộ trình
+  const [loTrinh, setLoTrinh] = useState([
+    { tuan: 'Tuần 1', noi_dung: '' }
+  ]);
 
-  // CẬP NHẬT: Thêm trường khoi_day vào formData
   const [formData, setFormData] = useState({
     ho_ten: '',
     so_dien_thoai: '',
     dia_chi: '',
     avatar_url: '',
     mon_hoc: '',
-    khoi_day: '', // <--- THÊM MỚI
+    khoi_day: '',
     gia_tien_moi_gio: '',
     gioi_thieu: '',
     anh_cccd: '',
@@ -40,35 +44,47 @@ export default function Profile({ session, userProfile, setUserProfile }) {
   const fetchProfile = async () => {
     setLoading(true);
     try {
+      // ✅ CẬP NHẬT: Thêm lo_trinh_hoc vào câu truy vấn
       const { data: userData, error } = await supabase
         .from('nguoi_dung')
         .select(`
           *,
-          chi_tiet_gia_su ( mon_hoc, khoi_day, gia_tien_moi_gio, gioi_thieu, anh_cccd, anh_bang_cap ) 
-        `) // CẬP NHẬT: Lấy thêm cột khoi_day
+          chi_tiet_gia_su ( mon_hoc, khoi_day, gia_tien_moi_gio, gioi_thieu, anh_cccd, anh_bang_cap, lo_trinh_hoc ) 
+        `) 
         .eq('id', session.user.id)
         .single();
-
+        
       if (error) throw error;
-
       setProfile(userData);
-
+      
       const chiTiet = Array.isArray(userData.chi_tiet_gia_su) 
                       ? userData.chi_tiet_gia_su[0] 
                       : userData.chi_tiet_gia_su;
-
+                      
       setFormData({
         ho_ten: userData.ho_ten || '',
         so_dien_thoai: userData.so_dien_thoai || '',
         dia_chi: userData.dia_chi || '',
         avatar_url: userData.avatar_url || '',
         mon_hoc: chiTiet?.mon_hoc || '',
-        khoi_day: chiTiet?.khoi_day || '', // <--- Đọc dữ liệu từ DB
+        khoi_day: chiTiet?.khoi_day || '',
         gia_tien_moi_gio: chiTiet?.gia_tien_moi_gio || '',
         gioi_thieu: chiTiet?.gioi_thieu || '',
         anh_cccd: chiTiet?.anh_cccd || '',        
         anh_bang_cap: chiTiet?.anh_bang_cap || ''  
       });
+
+      // ✅ ĐỌC DỮ LIỆU LỘ TRÌNH TỪ JSON ĐỂ HIỂN THỊ LÊN WEB
+      if (chiTiet?.lo_trinh_hoc) {
+        try {
+          setLoTrinh(JSON.parse(chiTiet.lo_trinh_hoc));
+        } catch (e) {
+          console.error("Lỗi parse lộ trình:", e);
+          setLoTrinh([{ tuan: 'Tuần 1', noi_dung: '' }]); // Fallback nếu lỗi
+        }
+      } else {
+        setLoTrinh([{ tuan: 'Tuần 1', noi_dung: '' }]); // Khởi tạo mặc định nếu chưa có
+      }
 
       if (userData.vai_tro === 'gia_su') {
         const [reviewRes, lichRes] = await Promise.all([
@@ -99,25 +115,26 @@ export default function Profile({ session, userProfile, setUserProfile }) {
           avatar_url: formData.avatar_url
         })
         .eq('id', session.user.id);
-
+        
       if (userError) throw userError;
-
+      
       if (profile.vai_tro === 'gia_su') {
         const { error: tutorError } = await supabase
           .from('chi_tiet_gia_su')
           .upsert({
             id_nguoi_dung: session.user.id,
             mon_hoc: formData.mon_hoc,
-            khoi_day: formData.khoi_day, // <--- CẬP NHẬT: Lưu khoi_day xuống DB
+            khoi_day: formData.khoi_day, 
             gia_tien_moi_gio: formData.gia_tien_moi_gio ? Number(formData.gia_tien_moi_gio) : null,
             gioi_thieu: formData.gioi_thieu,
+            lo_trinh_hoc: JSON.stringify(loTrinh), // ✅ CẬP NHẬT: Lưu mảng lộ trình dưới dạng chuỗi JSON
             anh_cccd: formData.anh_cccd,        
             anh_bang_cap: formData.anh_bang_cap  
           }, { onConflict: 'id_nguoi_dung' }); 
-
+          
         if (tutorError) throw tutorError;
       }
-
+      
       alert('Cập nhật hồ sơ thành công!');
       setIsEditing(false);
       fetchProfile(); 
@@ -137,7 +154,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
     const file = e.target.files[0];
     if (!file) return;
     if (file.size > 5 * 1024 * 1024) return alert("Dung lượng ảnh quá lớn. Vui lòng chọn ảnh dưới 5MB.");
-
     setUploadingImage(true);
     const { url, error } = await uploadAnhLenSupabase(file);
     if (error) {
@@ -210,7 +226,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                   </label>
                 )}
               </div>
-
               <h1 className="mb-1 text-2xl font-black text-slate-900">{formData.ho_ten || 'Chưa cập nhật tên'}</h1>
               
               <div className={`mb-6 inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold uppercase tracking-wider ${profile?.vai_tro === 'admin' ? 'bg-amber-100 text-amber-700 border border-amber-200' : profile?.vai_tro === 'gia_su' ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
@@ -218,7 +233,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                 {profile?.vai_tro === 'gia_su' && <><GraduationCap className="h-4 w-4" /> Gia Sư Cấp 2</>}
                 {profile?.vai_tro === 'hoc_vien' && <><User className="h-4 w-4" /> Học Viên</>}
               </div>
-
               <div className="flex flex-col gap-3 text-left text-sm text-slate-600">
                 <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><Mail className="h-5 w-5 text-slate-400 shrink-0" /><span className="truncate">{session.user.email}</span></div>
                 <div className="flex items-center gap-3 rounded-xl bg-slate-50 p-3"><Phone className="h-5 w-5 text-slate-400 shrink-0" /><span>{formData.so_dien_thoai || 'Chưa cập nhật SĐT'}</span></div>
@@ -236,7 +250,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                    </div>
                    <p className="mt-2 text-sm font-medium text-amber-700/70">Dựa trên {reviews.length} nhận xét</p>
                  </div>
-
                  <div className="rounded-[2rem] border border-emerald-100 bg-emerald-50 p-6 text-center">
                     <p className="mb-1 text-xs font-bold uppercase tracking-widest text-emerald-600">Học phí đề xuất</p>
                     <p className="text-3xl font-black text-emerald-700">
@@ -260,7 +273,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                     <p className="font-bold text-slate-800">Đang tải ảnh lên hệ thống...</p>
                   </div>
                 )}
-
                 <h2 className="mb-6 flex items-center gap-3 text-xl font-black text-slate-900">
                   <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><Settings className="h-5 w-5" /></div>
                   Cập nhật thông tin
@@ -277,7 +289,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                       <input type="text" value={formData.so_dien_thoai} onChange={e => setFormData({...formData, so_dien_thoai: e.target.value})} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3.5 text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all" />
                     </div>
                   </div>
-
                   <div>
                     <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Địa chỉ</label>
                     <input type="text" value={formData.dia_chi} onChange={e => setFormData({...formData, dia_chi: e.target.value})} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3.5 text-slate-800 outline-none focus:border-blue-500 focus:bg-white transition-all" />
@@ -289,7 +300,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                          <BookOpen className="h-4 w-4" /> Thông tin Giảng dạy Cấp 2
                        </h3>
 
-                       {/* CẬP NHẬT: Chọn Môn Học & Khối Lớp bằng Dropdown và Radio */}
                        <div className="grid gap-5 sm:grid-cols-2">
                           <div>
                             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Môn học chuyên môn</label>
@@ -305,7 +315,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                               <option value="Tiếng Anh">Tiếng Anh</option>
                             </select>
                           </div>
-
                           <div>
                             <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Khối lớp giảng dạy</label>
                             <div className="flex gap-3">
@@ -375,11 +384,63 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                             )}
                           </div>
                        </div>
-
+                       
                        <div>
                         <label className="mb-1.5 block text-xs font-bold uppercase tracking-wider text-slate-500">Giới thiệu & Kinh nghiệm luyện thi Cấp 2</label>
                         <textarea rows="4" placeholder="Ví dụ: Đã có kinh nghiệm 3 năm luyện thi lớp 10 môn Toán..." value={formData.gioi_thieu} onChange={e => setFormData({...formData, gioi_thieu: e.target.value})} className="w-full rounded-xl border-2 border-slate-100 bg-slate-50 p-3.5 text-slate-800 outline-none focus:border-emerald-500 focus:bg-white transition-all" />
                       </div>
+
+                      {/* ===== GIAO DIỆN TẠO LỘ TRÌNH ĐỘNG THEO TUẦN ===== */}
+                      <div className="mt-8 border-t border-slate-100 pt-6">
+                        <label className="mb-3 block text-sm font-bold uppercase tracking-wider text-emerald-600">
+                          Thiết lập Lộ trình học chi tiết
+                        </label>
+                        
+                        {loTrinh.map((item, index) => (
+                          <div key={index} className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 relative">
+                            <div className="flex justify-between items-center mb-3">
+                              <input 
+                                type="text" 
+                                value={item.tuan} 
+                                onChange={(e) => { 
+                                  const newLoTrinh = [...loTrinh]; 
+                                  newLoTrinh[index].tuan = e.target.value; 
+                                  setLoTrinh(newLoTrinh); 
+                                }} 
+                                className="font-bold bg-white border border-emerald-200 rounded-lg px-3 py-1 outline-none text-emerald-700 w-1/2 focus:ring-2 focus:ring-emerald-400/20" 
+                                placeholder="VD: Tuần 1 - Ôn tập đại số" 
+                              />
+                              <button 
+                                type="button" 
+                                onClick={() => setLoTrinh(loTrinh.filter((_, i) => i !== index))} 
+                                className="text-red-500 text-xs font-bold hover:underline flex items-center gap-1"
+                              >
+                                <Trash className="h-3 w-3" /> Xóa
+                              </button>
+                            </div>
+                            <textarea 
+                              rows="3" 
+                              value={item.noi_dung} 
+                              onChange={(e) => { 
+                                const newLoTrinh = [...loTrinh]; 
+                                newLoTrinh[index].noi_dung = e.target.value; 
+                                setLoTrinh(newLoTrinh); 
+                              }} 
+                              className="w-full rounded-lg border border-emerald-100 bg-white p-3 text-sm outline-none focus:border-emerald-400 focus:ring-2 focus:ring-emerald-400/20" 
+                              placeholder="VD:&#10;- Buổi 1: Lý thuyết hàm số&#10;- Buổi 2: Giải bài tập SGK&#10;- Buổi 3: Luyện đề trắc nghiệm..." 
+                            />
+                          </div>
+                        ))}
+                        
+                        <button 
+                          type="button" 
+                          onClick={() => setLoTrinh([...loTrinh, { tuan: `Tuần ${loTrinh.length + 1}`, noi_dung: '' }])} 
+                          className="w-full border-2 border-dashed border-emerald-300 text-emerald-600 font-bold text-sm py-3 rounded-xl hover:bg-emerald-100 transition-all flex justify-center items-center gap-2 mt-2"
+                        >
+                          Tạo thêm tuần học
+                        </button>
+                      </div>
+
                     </div>
                   )}
 
@@ -391,7 +452,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                   </div>
                 </div>
               </form>
-
             ) : (
               // ================= CHẾ ĐỘ XEM HỒ SƠ =================
               <div className="space-y-8">
@@ -402,8 +462,7 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                         <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-600"><BookOpen className="h-5 w-5" /></div>
                         Hồ sơ giảng dạy của bạn
                       </h2>
-
-                      {/* CẬP NHẬT: Hiển thị 3 cột (Môn học, Khối lớp, Trạng thái) */}
+                      
                       <div className="mb-8 grid gap-4 sm:grid-cols-3">
                         <div className="rounded-2xl bg-slate-50 p-5 border border-slate-100">
                           <h3 className="mb-2 text-xs font-bold uppercase tracking-widest text-slate-400">Môn học phụ trách</h3>
@@ -425,7 +484,6 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                         </div>
                       </div>
 
-                      {/* HIỂN THỊ ẢNH KYC CHO GIA SƯ TỰ XEM */}
                       <div className="mb-8 border-t border-slate-100 pt-6">
                         <h3 className="mb-3 text-sm font-bold uppercase tracking-widest text-slate-400 flex items-center gap-2">
                           <ShieldCheck className="h-4 w-4 text-blue-500" /> Tài liệu xác minh KYC (Ẩn với học viên)
@@ -448,8 +506,31 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                           {formData.gioi_thieu || "Bạn chưa cập nhật phần giới thiệu bản thân."}
                         </div>
                       </div>
-                    </div>
 
+                      {/* ✅ HIỂN THỊ LỘ TRÌNH DẠNG TIMELINE */}
+                      <div className="mt-8 border-t border-slate-100 pt-6">
+                        <h3 className="mb-4 text-sm font-bold uppercase tracking-widest text-slate-400">Lộ trình học chi tiết (Dự kiến)</h3>
+                        {loTrinh.length === 0 || (loTrinh.length === 1 && !loTrinh[0].noi_dung) ? (
+                          <div className="rounded-2xl bg-blue-50/50 border border-blue-100 p-6 text-slate-500 text-sm italic">
+                            Bạn chưa thiết lập lộ trình học cụ thể.
+                          </div>
+                        ) : (
+                          <div className="space-y-6 ml-2 mt-2">
+                            {loTrinh.map((item, idx) => (
+                              <div key={idx} className="relative pl-6 border-l-2 border-blue-200 pb-2 last:border-transparent">
+                                <div className="absolute -left-[9px] top-0 h-4 w-4 rounded-full border-4 border-white bg-blue-500"></div>
+                                <h4 className="font-bold text-blue-700 leading-none mb-2">{item.tuan}</h4>
+                                <div className="rounded-xl bg-slate-50 p-4 text-sm text-slate-700 whitespace-pre-wrap leading-relaxed border border-slate-100 shadow-sm">
+                                  {item.noi_dung || "Chưa có nội dung cho tuần này."}
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+
+                    </div>
+                    
                     {/* Khung giờ dạy và Đánh giá (GIỮ NGUYÊN) */}
                     <div className="rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-sm">
                       <div className="mb-6 flex items-center justify-between">
@@ -487,7 +568,7 @@ export default function Profile({ session, userProfile, setUserProfile }) {
                         </div>
                       )}
                     </div>
-
+                    
                     <div className="rounded-[2.5rem] border border-slate-100 bg-white p-8 shadow-sm">
                       <div className="mb-6 flex items-center justify-between">
                         <h2 className="flex items-center gap-3 text-xl font-black text-slate-900">

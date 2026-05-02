@@ -124,13 +124,12 @@ export default function TutorList({ session, userProfile }) {
       id_hoc_vien: session.user.id, id_gia_su: selectedTutor.id,
       thoi_gian_bat_dau: `${ngayChon}T${khungGioChon.gio_bat_dau}`,
       thoi_gian_ket_thuc: `${ngayChon}T${khungGioChon.gio_ket_thuc}`,
-      tong_tien: isNaN(totalPrice) ? 0 : totalPrice, trang_thai: 'cho_xac_nhan' // Trạng thái là chờ xác nhận
+      tong_tien: isNaN(totalPrice) ? 0 : totalPrice, trang_thai: 'cho_xac_nhan' 
     };
     setPendingBookingData(bookingData); setSelectedPayment(null); setPaymentStep('select');
     setIsModalOpen(false); setShowPaymentModal(true);
   };
 
-  // CẬP NHẬT: Bước chuyển sang quét QR (Áp dụng Cách 1 cho MoMo)
   const handleProceedToQR = async () => {
     if (!selectedPayment) return alert("Vui lòng chọn phương thức thanh toán!");
     
@@ -152,9 +151,7 @@ export default function TutorList({ session, userProfile }) {
         const data = await res.json();
         
         if (data && data.payUrl) {
-          // --- THAY ĐỔI Ở ĐÂY: Mở tab mới thay vì chuyển hướng trang hiện tại ---
           window.open(data.payUrl, '_blank'); 
-          // --- Chuyển Modal sang bước qr_scan để hiện nút xác nhận
           setPaymentStep('qr_scan');
         } else {
           alert('Lỗi khởi tạo MoMo: ' + (data.message || 'Không có payUrl'));
@@ -165,15 +162,13 @@ export default function TutorList({ session, userProfile }) {
         setPaymentStep('select');
       }
     } else {
-      // 2. Nếu chọn Chuyển khoản ngân hàng -> Hiện QR như cũ
       setPaymentStep('qr_scan');
     }
   };
 
-  // Bước xác nhận đã chuyển khoản/thanh toán xong (Dùng chung cho cả MoMo và Ngân hàng)
   const handleConfirmTransfer = async () => {
     setPaymentStep('processing');
-    await new Promise(resolve => setTimeout(resolve, 2000)); // Giả lập độ trễ
+    await new Promise(resolve => setTimeout(resolve, 2000)); 
 
     const { error } = await guiYeuCauDatLich(pendingBookingData);
     if (error) { alert("Lỗi đặt lịch: " + error.message); setShowPaymentModal(false); return; }
@@ -259,7 +254,6 @@ export default function TutorList({ session, userProfile }) {
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
-      {/* HEADER GIỮ NGUYÊN */}
       <section className="relative overflow-hidden bg-gradient-to-br from-blue-600 via-blue-700 to-cyan-500 pb-28 pt-14">
         <div className="relative z-10 mx-auto max-w-4xl px-5 text-center">
           <span className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-bold text-white backdrop-blur-sm">
@@ -329,7 +323,6 @@ export default function TutorList({ session, userProfile }) {
         </div>
       </section>
 
-      {/* DANH SÁCH GIA SƯ GIỮ NGUYÊN */}
       <div className="mx-auto -mt-10 max-w-6xl px-5 pb-20 relative z-20">
         {hasActiveFilter && (
           <div className="mb-6 flex flex-wrap justify-center gap-2">
@@ -394,7 +387,6 @@ export default function TutorList({ session, userProfile }) {
         )}
       </div>
 
-      {/* MODAL ĐẶT LỊCH GIỮ NGUYÊN */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md animate-[fadeIn_0.25s_ease-out] rounded-2xl bg-white shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
@@ -413,10 +405,25 @@ export default function TutorList({ session, userProfile }) {
                     {lichRanhGiaSu.map(lich => {
                       const isMatched = khungGioChon?.id === lich.id;
                       return (
-                        <li key={lich.id} onClick={() => handleSelectSuggestedSlot(lich)} className={`flex items-center gap-2 p-3 rounded-lg border shadow-sm cursor-pointer transition-all ${isMatched ? 'border-green-500 bg-green-50 ring-2 ring-green-500/20' : 'border-blue-100/50 bg-white hover:border-blue-300 hover:bg-blue-50'}`}>
-                          <CheckCircle2 className={`h-4 w-4 shrink-0 ${isMatched ? 'text-green-600' : 'text-emerald-500'}`} />
-                          <span className={`font-bold ${isMatched ? 'text-green-700' : 'text-gray-800'}`}>{lich.is_lap_lai === false && lich.ngay_cu_the ? `Ngày ${new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN')}` : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}</span>
-                          <span className={`text-xs ${isMatched ? 'text-green-600' : 'text-gray-500'}`}>({lich.gio_bat_dau.substring(0,5)} - {lich.gio_ket_thuc.substring(0,5)})</span>
+                        <li key={lich.id} onClick={() => handleSelectSuggestedSlot(lich)} className={`flex items-start gap-3 p-3 rounded-lg border shadow-sm cursor-pointer transition-all ${isMatched ? 'border-green-500 bg-green-50 ring-2 ring-green-500/20' : 'border-blue-100/50 bg-white hover:border-blue-300 hover:bg-blue-50'}`}>
+                          <CheckCircle2 className={`h-4 w-4 shrink-0 mt-0.5 ${isMatched ? 'text-green-600' : 'text-emerald-500'}`} />
+                          <div className="flex flex-col flex-1">
+                            <div className="flex flex-wrap items-center justify-between gap-1">
+                              <span className={`font-bold ${isMatched ? 'text-green-700' : 'text-gray-800'}`}>
+                                {lich.is_lap_lai === false && lich.ngay_cu_the ? `Ngày ${new Date(lich.ngay_cu_the).toLocaleDateString('vi-VN')}` : `${formatThu(lich.thu_trong_tuan)} hàng tuần`}
+                              </span>
+                              <span className={`text-xs font-bold ${isMatched ? 'text-green-700' : 'text-blue-600'}`}>
+                                {lich.gio_bat_dau.substring(0, 5)} - {lich.gio_ket_thuc.substring(0, 5)}
+                              </span>
+                            </div>
+                            
+                            {/* ✅ HIỂN THỊ MÔ TẢ CHI TIẾT TRONG MODAL ĐẶT LỊCH (TUTOR LIST) */}
+                            {lich.mo_ta_chi_tiet && (
+                              <span className={`text-xs mt-1.5 leading-relaxed line-clamp-2 ${isMatched ? 'text-green-700' : 'text-gray-500'}`}>
+                                <b className={isMatched ? "text-green-800" : "text-gray-700"}>Nội dung:</b> {lich.mo_ta_chi_tiet}
+                              </span>
+                            )}
+                          </div>
                         </li>
                       );
                     })}
@@ -429,6 +436,7 @@ export default function TutorList({ session, userProfile }) {
                   <label className="mb-2 flex items-center gap-2 text-sm font-bold text-blue-600"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-extrabold text-blue-700">1</span>Hoặc tự chọn ngày học</label>
                   <input type="date" required min={new Date().toISOString().split('T')[0]} value={ngayChon} onChange={e => { setNgayChon(e.target.value); setKhungGioChon(null); setTotalPrice(0); }} className="w-full rounded-xl border-2 border-gray-200 bg-gray-50 px-4 py-3 text-base text-gray-800 outline-none focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10" />
                 </div>
+
                 {ngayChon && (
                   <div>
                     <label className="mb-2 flex items-center gap-2 text-sm font-bold text-blue-600"><span className="flex h-6 w-6 items-center justify-center rounded-full bg-blue-100 text-xs font-extrabold text-blue-700">2</span>Xác nhận khung giờ</label>
@@ -448,12 +456,14 @@ export default function TutorList({ session, userProfile }) {
                     ) : <div className="flex items-center gap-2 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-600"><XCircle className="h-4 w-4 shrink-0" />Không có lịch rảnh.</div>}
                   </div>
                 )}
+
                 {khungGioChon && (
                   <div className="flex items-center justify-between rounded-xl border border-blue-100 bg-blue-50 px-5 py-4 mt-2">
                     <div className="flex items-center gap-2 text-sm font-bold text-blue-700"><DollarSign className="h-5 w-5" />Tổng cộng</div>
                     <span className="text-xl font-extrabold text-rose-600">{totalPrice.toLocaleString()} VNĐ</span>
                   </div>
                 )}
+
                 <div className="flex gap-3 pt-2">
                   <button type="submit" disabled={!khungGioChon} className={'flex flex-1 items-center justify-center gap-2 rounded-xl py-3.5 text-sm font-bold text-white shadow-md transition-all ' + (khungGioChon ? 'bg-green-500 hover:bg-green-600 active:scale-[0.98]' : 'cursor-not-allowed bg-gray-300')}>
                     <CreditCard className="h-4 w-4" /> Tiếp tục
@@ -466,14 +476,10 @@ export default function TutorList({ session, userProfile }) {
         </div>
       )}
 
-      {/* ========================================================= */}
-      {/* MODAL THANH TOÁN (CẬP NHẬT CÁCH 1 CHO MOMO)                 */}
-      {/* ========================================================= */}
       {showPaymentModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
           <div className="relative w-full max-w-md animate-[fadeIn_0.25s_ease-out] rounded-2xl bg-white shadow-2xl overflow-hidden">
             
-            {/* BƯỚC 1: CHỌN PHƯƠNG THỨC */}
             {paymentStep === 'select' && (
               <>
                 <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-5 text-white">
@@ -490,6 +496,7 @@ export default function TutorList({ session, userProfile }) {
                       <div className="flex justify-between border-t border-slate-200 pt-2 mt-2"><span className="font-bold text-slate-700">Tổng tiền</span><span className="font-black text-rose-600 text-base">{totalPrice.toLocaleString()} VNĐ</span></div>
                     </div>
                   </div>
+
                   <div className="space-y-3">
                     <p className="text-sm font-bold text-slate-700">Phương thức thanh toán</p>
                     {paymentMethods.map(method => (
@@ -502,6 +509,7 @@ export default function TutorList({ session, userProfile }) {
                       </div>
                     ))}
                   </div>
+
                   <button onClick={handleProceedToQR} disabled={!selectedPayment} className={`w-full rounded-xl py-4 font-bold text-white transition-all active:scale-95 flex items-center justify-center gap-2 ${selectedPayment ? 'bg-gradient-to-r from-blue-600 to-indigo-600 hover:opacity-90 shadow-lg' : 'bg-slate-300 cursor-not-allowed'}`}>
                     <QrCode className="h-5 w-5" /> Hiện mã thanh toán
                   </button>
@@ -509,7 +517,6 @@ export default function TutorList({ session, userProfile }) {
               </>
             )}
 
-            {/* BƯỚC 2: HIỆN MÃ QR HOẶC CHỜ XÁC NHẬN MOMO (ĐÃ CẬP NHẬT) */}
             {paymentStep === 'qr_scan' && (
               <div className="p-6 bg-slate-50">
                 <div className="text-center mb-6">
@@ -521,7 +528,6 @@ export default function TutorList({ session, userProfile }) {
                   </p>
                 </div>
 
-                {/* KIỂM TRA: NẾU LÀ MOMO THÌ HIỆN ICON CHỜ, NẾU LÀ NGÂN HÀNG THÌ HIỆN MÃ QR */}
                 {selectedPayment === 'MoMo' ? (
                   <div className="flex flex-col items-center justify-center py-6 mb-6">
                     <div className="mb-4 flex h-20 w-20 items-center justify-center rounded-3xl bg-pink-100 text-4xl animate-pulse shadow-inner border border-pink-200">
@@ -533,7 +539,6 @@ export default function TutorList({ session, userProfile }) {
                   </div>
                 ) : (
                   <>
-                    {/* Khung chứa mã QR Ngân Hàng (Giữ nguyên cũ) */}
                     <div className="mx-auto bg-white p-3 border-2 border-slate-200 rounded-2xl w-48 h-48 mb-6 shadow-sm relative">
                        <img 
                           src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=MAT_KHAU_CHUYEN_KHOAN_${totalPrice}`} 
@@ -542,7 +547,6 @@ export default function TutorList({ session, userProfile }) {
                        />
                     </div>
     
-                    {/* Thông tin chuyển khoản Ngân hàng (Giữ nguyên cũ) */}
                     <div className="bg-white p-5 rounded-2xl text-sm mb-6 space-y-3 border border-slate-200 shadow-sm">
                        <div className="flex justify-between items-center"><span className="text-slate-500">Chủ tài khoản:</span><span className="font-bold text-slate-800 uppercase">Gia Su Pro Admin</span></div>
                        <div className="flex justify-between items-center"><span className="text-slate-500">Ngân hàng:</span><span className="font-bold text-slate-800">MBBank</span></div>
@@ -569,7 +573,6 @@ export default function TutorList({ session, userProfile }) {
                 <div className="flex gap-3">
                   <button onClick={() => setPaymentStep('select')} className="flex-1 py-3.5 font-bold text-slate-600 bg-white border border-slate-200 rounded-xl hover:bg-slate-100 transition-all">Quay lại</button>
                   
-                  {/* NÚT XÁC NHẬN - DÙNG CHUNG CHO CẢ MOMO VÀ NGÂN HÀNG */}
                   <button onClick={handleConfirmTransfer} className="flex-[2] py-3.5 font-bold text-white bg-green-500 rounded-xl hover:bg-green-600 shadow-md shadow-green-500/20 transition-all active:scale-95">
                     {selectedPayment === 'MoMo' ? 'Tôi đã thanh toán xong' : 'Tôi đã chuyển xong'}
                   </button>
@@ -577,7 +580,6 @@ export default function TutorList({ session, userProfile }) {
               </div>
             )}
 
-            {/* BƯỚC 3: ĐANG XỬ LÝ (GIỮ NGUYÊN) */}
             {paymentStep === 'processing' && (
               <div className="p-12 text-center">
                 <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-blue-50"><Loader2 className="h-12 w-12 animate-spin text-blue-600" /></div>
@@ -587,7 +589,6 @@ export default function TutorList({ session, userProfile }) {
               </div>
             )}
 
-            {/* BƯỚC 4: THÀNH CÔNG VÀ CHỜ DUYỆT (GIỮ NGUYÊN) */}
             {paymentStep === 'success' && (
               <div className="p-10 text-center">
                 <div className="mx-auto mb-6 flex h-24 w-24 items-center justify-center rounded-full bg-amber-50"><Clock className="h-14 w-14 text-amber-500" /></div>
