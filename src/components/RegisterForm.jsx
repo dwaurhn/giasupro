@@ -22,9 +22,9 @@ export default function RegisterForm() {
     setIsSubmitting(false);
 
     if (result.success) {
-      setThongBao('Đăng ký thành công! Vui lòng kiểm tra email để xác nhận tài khoản.');
-      // Tùy chọn: Tự động chuyển về trang login sau 3 giây để người dùng đăng nhập
-      // setTimeout(() => navigate('/login'), 3000);
+      setThongBao('Đăng ký thành công! Đang chuyển vào hệ thống...');
+      // Tự động đẩy thẳng vào trang đăng nhập sau 1.5 giây để người dùng vào web luôn
+      setTimeout(() => navigate('/login'), 1500); 
     } else {
       setThongBao(`Lỗi: ${result.message}`);
     }
